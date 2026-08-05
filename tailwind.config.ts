@@ -27,11 +27,16 @@ const config: Config = {
           "0%": { transform: "translateY(16px)", opacity: "0" },
           "100%": { transform: "translateY(0)", opacity: "1" },
         },
+        "kk-sheet-up": {
+          "0%": { transform: "translateY(100%)" },
+          "100%": { transform: "translateY(0)" },
+        },
       },
       animation: {
         "kk-float": "kk-float 3.2s ease-in-out infinite",
         "kk-pop-in": "kk-pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both",
         "kk-slide-up": "kk-slide-up 0.5s ease-out both",
+        "kk-sheet-up": "kk-sheet-up 0.3s cubic-bezier(0.32, 0.72, 0, 1) both",
       },
     },
   },

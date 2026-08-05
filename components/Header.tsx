@@ -2,81 +2,133 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import { MAIN_GAMES, WARMUP_GAMES } from "@/lib/games";
 
-const menuGroups = [
-  {
-    title: "Main event games",
-    featured: true,
-    links: [
-      ["Kris Kringle (White Elephant)", "/kris-kringle"],
-      ["Secret Santa", "/secret-santa"],
-    ],
-  },
-  {
-    title: "Warm-up games",
-    links: [
-      ["Christmas trivia", "/trivia"],
-      ["Christmas charades", "/charades"],
-      ["Christmas bingo", "/bingo"],
-    ],
-  },
-  {
-    title: "XmasGoat family",
-    links: [
-      ["Gift ideas & shopping", "https://xmasgoat.com/gift-ideas"],
-      ["Party planning", "https://party.xmasgoat.com"],
-    ],
-  },
-] as const;
+interface Props {
+  menuOpen: boolean;
+  onMenuToggle: () => void;
+  onPlayClick: () => void;
+}
 
-export function Header() {
+function GameIconCard({
+  emoji,
+  bg,
+  name,
+  subtitle,
+  href,
+  large,
+  onClick,
+}: {
+  emoji: string;
+  bg: string;
+  name: string;
+  subtitle: string;
+  href: string;
+  large?: boolean;
+  onClick: () => void;
+}) {
+  if (large) {
+    return (
+      <Link
+        href={href}
+        onClick={onClick}
+        className="flex items-center gap-3 rounded-2xl border-2 border-black bg-white p-4 shadow-[3px_3px_0_#000] transition hover:-translate-y-0.5 hover:shadow-[4px_4px_0_#000] active:scale-95"
+      >
+        <span
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-3xl"
+          style={{ backgroundColor: bg }}
+          aria-hidden="true"
+        >
+          {emoji}
+        </span>
+        <div>
+          <p className="font-black leading-tight">{name}</p>
+          <p className="text-xs text-slate-500">{subtitle}</p>
+        </div>
+      </Link>
+    );
+  }
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className="flex flex-col items-center gap-2 rounded-2xl border-2 border-slate-200 bg-white p-3 text-center transition hover:border-black active:scale-95"
+    >
+      <span
+        className="flex h-11 w-11 items-center justify-center rounded-xl text-2xl"
+        style={{ backgroundColor: bg }}
+        aria-hidden="true"
+      >
+        {emoji}
+      </span>
+      <p className="text-[11px] font-black leading-tight">{name}</p>
+    </Link>
+  );
+}
+
+export function Header({ menuOpen, onMenuToggle, onPlayClick }: Props) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => setOpen(false), [pathname]);
+  // Close menu on navigation
   useEffect(() => {
-    if (!open) return;
-    const close = (event: MouseEvent) => {
-      if (!menuRef.current?.contains(event.target as Node)) setOpen(false);
+    if (menuOpen) onMenuToggle();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  // Keyboard + outside-click dismissal
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { onMenuToggle(); triggerRef.current?.focus(); }
     };
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-        triggerRef.current?.focus();
-      }
+    const onClick = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) onMenuToggle();
     };
-    document.addEventListener("mousedown", close);
-    document.addEventListener("keydown", escape);
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onClick);
     return () => {
-      document.removeEventListener("mousedown", close);
-      document.removeEventListener("keydown", escape);
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onClick);
     };
-  }, [open]);
+  }, [menuOpen, onMenuToggle]);
+
+  const close = () => { if (menuOpen) onMenuToggle(); };
 
   return (
-    <header className="sticky top-0 z-50 border-b-2 border-black bg-[#fffdf7]/95 backdrop-blur">
-      <div ref={menuRef} className="relative mx-auto flex h-16 max-w-6xl items-center justify-between px-3 sm:px-6">
+    <header className="sticky top-0 z-40 border-b-2 border-black bg-[#fffdf7]/95 backdrop-blur">
+      <div
+        ref={menuRef}
+        className="relative mx-auto flex h-16 max-w-6xl items-center justify-between px-3 sm:px-6"
+      >
+        {/* Menu trigger */}
         <button
           ref={triggerRef}
           type="button"
-          aria-expanded={open}
+          aria-expanded={menuOpen}
           aria-controls="site-menu"
-          onClick={() => setOpen((v) => !v)}
-          className="inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-sm font-extrabold uppercase tracking-wide text-black hover:bg-black hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+          onClick={onMenuToggle}
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm font-extrabold uppercase tracking-wide text-black hover:bg-black hover:text-white focus-visible:outline focus-visible:outline-2"
         >
-          Menu
-          <svg aria-hidden="true" viewBox="0 0 12 8" className={`h-2.5 w-3 transition-transform ${open ? "rotate-180" : ""}`}>
-            <path d="M1 1.25 6 6.25l5-5" fill="none" stroke="currentColor" strokeWidth="2" />
-          </svg>
+          <span
+            className="flex h-5 w-5 flex-col items-center justify-center gap-[4px] transition-transform"
+            aria-hidden="true"
+          >
+            <span className={`block h-0.5 w-4 bg-current transition-all ${menuOpen ? "translate-y-[6px] rotate-45" : ""}`} />
+            <span className={`block h-0.5 bg-current transition-all ${menuOpen ? "w-0 opacity-0" : "w-4"}`} />
+            <span className={`block h-0.5 w-4 bg-current transition-all ${menuOpen ? "-translate-y-[6px] -rotate-45" : ""}`} />
+          </span>
+          <span className="hidden sm:inline">Menu</span>
         </button>
 
+        {/* Wordmark */}
         <Link
           href="/"
           aria-label="Game Goat home"
+          onClick={close}
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
         >
           <Image
@@ -85,48 +137,118 @@ export function Header() {
             width={202}
             height={39}
             priority
-            className="h-auto w-[126px] sm:w-[180px]"
+            className="h-auto w-[116px] sm:w-[180px]"
           />
         </Link>
 
-        <Link
-          href="/kris-kringle"
-          className="inline-flex min-h-11 items-center rounded-full border-2 border-black bg-kringle-cranberry px-3 text-xs font-extrabold uppercase tracking-wide text-white shadow-[2px_2px_0_#000] hover:-translate-y-0.5 sm:px-5 sm:text-sm"
+        {/* Play button → game picker */}
+        <button
+          type="button"
+          onClick={onPlayClick}
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-full border-2 border-black bg-kringle-cranberry px-3 text-xs font-extrabold uppercase tracking-wide text-white shadow-[2px_2px_0_#000] transition hover:-translate-y-0.5 sm:px-5 sm:text-sm"
         >
-          Play<span className="hidden sm:inline"> a game</span>
-        </Link>
+          <span aria-hidden="true">🎮</span>
+          <span>Play</span>
+        </button>
 
-        {open && (
+        {/* Dropdown menu */}
+        {menuOpen && (
           <div
             id="site-menu"
-            className="absolute left-3 right-3 top-[calc(100%+8px)] overflow-hidden rounded-3xl border-2 border-black bg-[#fffdf7] shadow-[6px_6px_0_#000] sm:left-6 sm:right-6"
+            className="absolute left-3 right-3 top-[calc(100%+8px)] z-50 overflow-hidden rounded-3xl border-2 border-black bg-[#fffdf7] shadow-[6px_6px_0_#000] sm:left-6 sm:right-6"
           >
-            <nav aria-label="Site menu" className="grid max-h-[calc(100vh-6rem)] gap-2 overflow-y-auto p-4 sm:grid-cols-3 sm:p-6">
-              {menuGroups.map((group) => (
-                <section
-                  key={group.title}
-                  className={`rounded-2xl border-2 border-black p-4 ${"featured" in group ? "bg-[#f8df92]" : "bg-white"}`}
-                >
-                  <h2 className="text-sm font-black uppercase tracking-[0.12em]">{group.title}</h2>
-                  <div className="mt-2 grid gap-1">
-                    {group.links.map(([label, href]) => (
-                      <Link
-                        key={href}
-                        href={href}
-                        className="rounded-lg px-2 py-2 text-sm font-bold hover:bg-black hover:text-white focus-visible:outline focus-visible:outline-2"
+            <div className="grid gap-4 p-4 sm:grid-cols-[1fr_1fr_auto] sm:p-5">
+
+              {/* Main event */}
+              <section>
+                <p className="mb-2 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-kringle-cranberry">
+                  <span className="inline-block h-2 w-2 rounded-full bg-kringle-cranberry" />
+                  Main Event
+                </p>
+                <div className="grid gap-2">
+                  {MAIN_GAMES.map((g) => (
+                    <GameIconCard
+                      key={g.href}
+                      href={g.href}
+                      emoji={g.emoji}
+                      bg={g.iconBg}
+                      name={g.name}
+                      subtitle={g.description}
+                      large
+                      onClick={close}
+                    />
+                  ))}
+                </div>
+              </section>
+
+              {/* Warm-up */}
+              <section>
+                <p className="mb-2 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-kringle-spruce">
+                  <span className="inline-block h-2 w-2 rounded-full bg-kringle-spruce" />
+                  Warm-Up Games
+                </p>
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-1 sm:gap-2">
+                  {WARMUP_GAMES.map((g) => (
+                    <Link
+                      key={g.href}
+                      href={g.href}
+                      onClick={close}
+                      className="flex items-center gap-3 rounded-2xl border-2 border-slate-200 bg-white p-3 transition hover:border-black active:scale-95 sm:p-3"
+                    >
+                      <span
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl"
+                        style={{ backgroundColor: g.iconBg }}
+                        aria-hidden="true"
                       >
-                        {label}<span aria-hidden="true"> →</span>
-                      </Link>
-                    ))}
-                  </div>
-                </section>
-              ))}
-            </nav>
+                        {g.emoji}
+                      </span>
+                      <div className="hidden sm:block">
+                        <p className="text-sm font-black">{g.name}</p>
+                        <p className="text-xs text-slate-500">{g.subtitle}</p>
+                      </div>
+                      <p className="text-[10px] font-black sm:hidden">{g.name}</p>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+
+              {/* External links */}
+              <section className="hidden border-l-2 border-slate-100 pl-4 sm:block">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  XmasGoat Family
+                </p>
+                <div className="grid gap-1 text-sm">
+                  <a
+                    href="https://xmasgoat.com/gift-ideas"
+                    className="flex items-center gap-2 rounded-xl px-2 py-2 font-bold hover:bg-black hover:text-white"
+                  >
+                    🛍 Gift ideas
+                  </a>
+                  <a
+                    href="https://party.xmasgoat.com"
+                    className="flex items-center gap-2 rounded-xl px-2 py-2 font-bold hover:bg-black hover:text-white"
+                  >
+                    🎉 Party planner
+                  </a>
+                  <a
+                    href="https://xmasgoat.com"
+                    className="flex items-center gap-2 rounded-xl px-2 py-2 font-bold hover:bg-black hover:text-white"
+                  >
+                    🐐 XmasGoat.com
+                  </a>
+                </div>
+                <div className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-400">
+                  <a href="https://xmasgoat.com/privacy" className="hover:underline">Privacy</a>
+                </div>
+              </section>
+            </div>
+
+            {/* Footer bar */}
             <div className="flex flex-wrap items-center justify-between gap-2 border-t-2 border-black bg-black px-5 py-3 text-xs font-semibold text-white">
-              <p>Make Christmas legendary.</p>
-              <div className="flex gap-4">
-                <a href="https://xmasgoat.com/privacy" className="underline">Privacy</a>
+              <p>Make Christmas legendary. 🎄</p>
+              <div className="flex gap-4 sm:hidden">
                 <a href="https://xmasgoat.com" className="underline">XmasGoat.com</a>
+                <a href="https://party.xmasgoat.com" className="underline">Party Goat</a>
               </div>
             </div>
           </div>

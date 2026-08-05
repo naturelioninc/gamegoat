@@ -1,0 +1,64 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { Header } from "./Header";
+import { BottomNav } from "./BottomNav";
+import { GamePickerOverlay } from "./GamePickerOverlay";
+import { Snowfall } from "./fx/Snowfall";
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  // Close everything on navigation
+  useEffect(() => {
+    setMenuOpen(false);
+    setPickerOpen(false);
+  }, [pathname]);
+
+  // Lock body scroll when any overlay is open
+  useEffect(() => {
+    const locked = menuOpen || pickerOpen;
+    document.body.style.overflow = locked ? "hidden" : "";
+    document.body.style.position = locked ? "fixed" : "";
+    document.body.style.width = locked ? "100%" : "";
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, [menuOpen, pickerOpen]);
+
+  const openPicker = () => {
+    setMenuOpen(false);
+    setPickerOpen(true);
+  };
+
+  return (
+    <>
+      <Snowfall />
+      <Header
+        menuOpen={menuOpen}
+        onMenuToggle={() => setMenuOpen((v) => !v)}
+        onPlayClick={openPicker}
+      />
+
+      {/* Backdrop for menu (scroll is locked, but we still want a visual overlay) */}
+      {menuOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/20"
+          aria-hidden="true"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
+
+      <div className="flex-1 pb-20 sm:pb-0">{children}</div>
+
+      <BottomNav onPlayClick={openPicker} />
+
+      {pickerOpen && <GamePickerOverlay onClose={() => setPickerOpen(false)} />}
+    </>
+  );
+}
