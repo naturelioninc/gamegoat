@@ -31,10 +31,38 @@
   }
 }
 
+html:not(.kk-live) .animate-kk-float,
+html:not(.kk-live) .animate-kk-sparkle,
+html:not(.kk-live) .animate-kk-glow,
+html:not(.kk-live) .kk-flake,
+html:not(.kk-live) .kk-flake > span {
+  animation-play-state: paused;
+}
+
+.kk-flake {
+  position: absolute;
+  top: -3vh;
+  will-change: transform;
+  animation: kk-fall var(--kk-dur) linear infinite;
+  animation-delay: var(--kk-delay);
+}
+.kk-flake > span {
+  display: block;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  animation: kk-sway var(--kk-sway-dur) ease-in-out infinite alternate;
+  animation-delay: var(--kk-delay);
+}
+@keyframes kk-fall {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(0, 106vh, 0); }
+}
+@keyframes kk-sway {
+  from { transform: translate3d(calc(var(--kk-drift) * -1), 0, 0); }
+  to { transform: translate3d(var(--kk-drift), 0, 0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-kk-float,
-  .animate-kk-pop-in,
-  .animate-kk-slide-up {
-    animation-duration: 0.01ms;
-  }
+  .kk-flake, .kk-flake > span { animation: none; }
+  .animate-kk-float, .animate-kk-pop-in, .animate-kk-slide-up { animation-duration: 0.01ms; }
 }
