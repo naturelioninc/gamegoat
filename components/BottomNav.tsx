@@ -7,12 +7,20 @@ interface Props {
   onPlayClick: () => void;
 }
 
-const TABS = [
+interface Tab {
+  href: string;
+  emoji: string;
+  label: string;
+  iconBg?: string;
+  exact?: boolean;
+}
+
+const TABS: Tab[] = [
   { href: "/", emoji: "🏠", label: "Home", exact: true },
   { href: "/kris-kringle", emoji: "🎁", label: "Kris K.", iconBg: "#a4161a" },
   { href: "/secret-santa", emoji: "🎅", label: "Santa", iconBg: "#0f5132" },
   { href: "/trivia", emoji: "🧠", label: "Trivia", iconBg: "#0284c7" },
-] as const;
+];
 
 export function BottomNav({ onPlayClick }: Props) {
   const pathname = usePathname();
@@ -26,8 +34,7 @@ export function BottomNav({ onPlayClick }: Props) {
       className="fixed bottom-0 left-0 right-0 z-30 border-t-2 border-black bg-[#fffdf7]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
     >
       <div className="grid h-16 grid-cols-5 items-center px-1">
-        {TABS.map(({ href, emoji, label, iconBg, ...rest }) => {
-          const exact = "exact" in rest ? rest.exact : false;
+        {TABS.map(({ href, emoji, label, iconBg, exact }) => {
           const active = isActive(href, exact);
           return (
             <Link
