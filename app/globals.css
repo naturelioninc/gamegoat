@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background-color: #fffdf7;
+  }
+  ::selection {
+    background: #f8df92;
+    color: #000;
+  }
+  :focus-visible {
+    outline-color: #a4161a;
+  }
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-width: 24px;
+    min-height: 24px;
+  }
+}
+
+@layer utilities {
+  .kk-frost-bg {
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(248, 223, 146, 0.24), transparent),
+      radial-gradient(ellipse 60% 40% at 80% 110%, rgba(164, 22, 26, 0.06), transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-kk-float,
+  .animate-kk-pop-in,
+  .animate-kk-slide-up {
+    animation-duration: 0.01ms;
+  }
+}
