@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useRef, useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import QRCode from "react-qr-code";
 import { drawSecretSanta, launchGame } from "../actions";
@@ -24,47 +24,191 @@ function formatBudget(cents: number | null): string {
   return `$${(cents / 100).toFixed(0)}`;
 }
 
+// ---------------------------------------------------------------------------
+// Invite panel
+// ---------------------------------------------------------------------------
+
+function InvitePanel({ exchange }: { exchange: Exchange }) {
+  const qrRef = useRef<HTMLDivElement>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedMsg, setCopiedMsg] = useState(false);
+
+  const joinUrl = `${BASE_URL}/kris-kringle/exchange/${exchange.id}/join`;
+
+  const partyLine = exchange.party_date ? `📅 ${formatDate(exchange.party_date)}\n` : "";
+  const budgetLine = exchange.budget_cents
+    ? `💰 Budget: ${formatBudget(exchange.budget_cents)} per person\n`
+    : "";
+
+  const inviteText =
+    `Hey! ${exchange.host_name} has invited you to a Kris Kringle gift exchange 🎄\n\n` +
+    `${exchange.name}\n` +
+    partyLine +
+    budgetLine +
+    `\nJoin and add your wish list:\n${joinUrl}`;
+
+  const mailtoHref =
+    `mailto:?subject=${encodeURIComponent(`You're invited to ${exchange.name} 🎁`)}` +
+    `&body=${encodeURIComponent(inviteText)}`;
+
+  function copyLink() {
+    navigator.clipboard.writeText(joinUrl).then(() => {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    });
+  }
+
+  function copyMessage() {
+    navigator.clipboard.writeText(inviteText).then(() => {
+      setCopiedMsg(true);
+      setTimeout(() => setCopiedMsg(false), 2000);
+    });
+  }
+
+  function shareNative() {
+    if (navigator.share) {
+      navigator.share({ title: exchange.name, text: inviteText, url: joinUrl }).catch(() => {});
+    } else {
+      copyMessage();
+    }
+  }
+
+  function downloadQR() {
+    const svgEl = qrRef.current?.querySelector("svg");
+    if (!svgEl) return;
+
+    const size = 480;
+    const pad = 24;
+
+    const svgData = new XMLSerializer().serializeToString(svgEl);
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const img = new Image();
+    const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+
+    img.onload = () => {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, size, size);
+      ctx.drawImage(img, pad, pad, size - pad * 2, size - pad * 2);
+      URL.revokeObjectURL(url);
+
+      const link = document.createElement("a");
+      link.download = `invite-${exchange.name.toLowerCase().replace(/\s+/g, "-")}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    };
+
+    img.src = url;
+  }
+
+  return (
+    <section className="rounded-3xl border-2 border-black bg-white p-6 shadow-[4px_4px_0_#000] space-y-5">
+      <div>
+        <h2 className="text-xl font-black">Invite your guests</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Share via your own email, text, or any app — guests join and add their wish list before the party.
+        </p>
+      </div>
+
+      {/* QR code + download */}
+      <div className="flex flex-col items-center gap-3">
+        <div
+          ref={qrRef}
+          className="rounded-2xl border-2 border-slate-100 bg-white p-5 shadow-sm"
+        >
+          <QRCode value={joinUrl} size={176} bgColor="#ffffff" fgColor="#1a5c3a" />
+        </div>
+        <button
+          type="button"
+          onClick={downloadQR}
+          className="text-xs font-bold text-slate-500 underline underline-offset-2 hover:text-slate-800"
+        >
+          ⬇ Download QR image
+        </button>
+        <p className="text-xs text-slate-400 text-center">
+          Save it, print it, or drop it into a group chat
+        </p>
+      </div>
+
+      {/* Action buttons */}
+      <div className="grid grid-cols-2 gap-3">
+        <a
+          href={mailtoHref}
+          className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-kringle-cranberry font-black text-white text-sm"
+        >
+          📧 Open email
+        </a>
+        <button
+          type="button"
+          onClick={shareNative}
+          className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-kringle-spruce font-black text-white text-sm"
+        >
+          📤 Share invite
+        </button>
+        <button
+          type="button"
+          onClick={copyMessage}
+          className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 font-black text-sm transition ${
+            copiedMsg
+              ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+              : "border-slate-300 text-slate-700 hover:border-slate-500"
+          }`}
+        >
+          {copiedMsg ? "✓ Copied!" : "💬 Copy message"}
+        </button>
+        <button
+          type="button"
+          onClick={copyLink}
+          className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 font-black text-sm transition ${
+            copiedLink
+              ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+              : "border-slate-300 text-slate-700 hover:border-slate-500"
+          }`}
+        >
+          {copiedLink ? "✓ Copied!" : "🔗 Copy link"}
+        </button>
+      </div>
+
+      {/* Raw URL */}
+      <div
+        className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2"
+        onClick={copyLink}
+        title="Click to copy"
+      >
+        <span className="flex-1 truncate font-mono text-[11px] text-slate-500">{joinUrl}</span>
+        <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+          Copy
+        </span>
+      </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main dashboard
+// ---------------------------------------------------------------------------
+
 export function ExchangeDashboard({ exchange: initial }: { exchange: Exchange }) {
   const router = useRouter();
   const [exchange, setExchange] = useState(initial);
-  const [copied, setCopied] = useState(false);
   const [drawPending, startDraw] = useTransition();
   const [launchPending, startLaunch] = useTransition();
   const [actionError, setActionError] = useState("");
-
-  const joinUrl = `${BASE_URL}/kris-kringle/exchange/${exchange.id}/join`;
 
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
         const res = await fetch(`/api/exchange/${exchange.id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setExchange(data);
-        }
+        if (res.ok) setExchange(await res.json());
       } catch {}
     }, 10_000);
     return () => clearInterval(interval);
   }, [exchange.id]);
-
-  function copyLink() {
-    navigator.clipboard.writeText(joinUrl).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }
-
-  function shareLink() {
-    if (navigator.share) {
-      navigator.share({
-        title: exchange.name,
-        text: `Join my Kris Kringle exchange: ${exchange.name}`,
-        url: joinUrl,
-      });
-    } else {
-      copyLink();
-    }
-  }
 
   function handleDraw() {
     setActionError("");
@@ -98,50 +242,24 @@ export function ExchangeDashboard({ exchange: initial }: { exchange: Exchange })
 
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-5 py-10 sm:py-14">
+      {/* Header */}
       <header className="space-y-2">
         <p className="text-sm font-bold uppercase tracking-[0.16em] text-kringle-cranberry">
           Exchange dashboard
         </p>
         <h1 className="text-4xl font-extrabold tracking-tight">{exchange.name}</h1>
         <div className="flex flex-wrap gap-3 text-sm text-slate-600">
-          {exchange.party_date && (
-            <span>📅 {formatDate(exchange.party_date)}</span>
-          )}
+          {exchange.party_date && <span>📅 {formatDate(exchange.party_date)}</span>}
           {exchange.budget_cents && (
             <span>💰 Budget: {formatBudget(exchange.budget_cents)} per person</span>
           )}
         </div>
       </header>
 
-      <section className="rounded-3xl border-2 border-black bg-white p-6 shadow-[4px_4px_0_#000] space-y-5">
-        <h2 className="text-xl font-black">Invite link</h2>
-        <p className="text-sm text-slate-600">
-          Share this link with your guests so they can join and add their wish list.
-        </p>
-        <div className="flex items-center gap-2 rounded-2xl border-2 border-slate-200 bg-slate-50 px-4 py-3">
-          <span className="flex-1 truncate font-mono text-xs text-slate-700">{joinUrl}</span>
-        </div>
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={copyLink}
-            className="flex-1 min-h-11 rounded-2xl border-2 border-kringle-spruce font-black text-kringle-spruce text-sm"
-          >
-            {copied ? "✓ Copied!" : "📋 Copy link"}
-          </button>
-          <button
-            type="button"
-            onClick={shareLink}
-            className="flex-1 min-h-11 rounded-2xl bg-kringle-cranberry font-black text-white text-sm"
-          >
-            📤 Share
-          </button>
-        </div>
-        <div className="flex justify-center rounded-2xl border-2 border-slate-200 bg-white p-4">
-          <QRCode value={joinUrl} size={160} />
-        </div>
-      </section>
+      {/* Invite panel */}
+      <InvitePanel exchange={exchange} />
 
+      {/* Participants */}
       <section className="rounded-3xl border-2 border-black bg-white p-6 shadow-[4px_4px_0_#000] space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-black">
@@ -156,7 +274,9 @@ export function ExchangeDashboard({ exchange: initial }: { exchange: Exchange })
         </div>
 
         {exchange.participants.length === 0 ? (
-          <p className="text-sm text-slate-500">No participants yet. Share the invite link above.</p>
+          <p className="text-sm text-slate-500">
+            No one yet — share the invite above and they&apos;ll appear here.
+          </p>
         ) : (
           <ul className="space-y-2">
             {exchange.participants.map((p) => {
@@ -177,7 +297,9 @@ export function ExchangeDashboard({ exchange: initial }: { exchange: Exchange })
                         : "bg-slate-200 text-slate-600"
                     }`}
                   >
-                    {hasWishList ? `✓ ${p.wish_list.length} item${p.wish_list.length !== 1 ? "s" : ""}` : "No wish list"}
+                    {hasWishList
+                      ? `✓ ${p.wish_list.length} item${p.wish_list.length !== 1 ? "s" : ""}`
+                      : "No wish list"}
                   </span>
                 </li>
               );
@@ -192,12 +314,13 @@ export function ExchangeDashboard({ exchange: initial }: { exchange: Exchange })
         </p>
       )}
 
+      {/* Draw Secret Santa */}
       {!exchange.secret_santa_drawn && hasEnoughParticipants && (
         <section className="rounded-3xl border-2 border-black bg-white p-6 shadow-[4px_4px_0_#000] space-y-4">
           <h2 className="text-xl font-black">Draw Secret Santa names</h2>
           <p className="text-sm text-slate-600">
-            Each participant will be emailed their secret assignment privately.
-            This can only be done once.
+            Each participant will be emailed their secret assignment privately. This can only be
+            done once.
           </p>
           <button
             type="button"
@@ -216,11 +339,13 @@ export function ExchangeDashboard({ exchange: initial }: { exchange: Exchange })
         </div>
       )}
 
+      {/* Launch game */}
       {hasEnoughParticipants && (
         <section className="rounded-3xl border-2 border-black bg-white p-6 shadow-[4px_4px_0_#000] space-y-4">
           <h2 className="text-xl font-black">Launch the game</h2>
           <p className="text-sm text-slate-600">
-            Ready for the party? Launch the live White Elephant game room for all participants.
+            Ready for the party? Start the live White Elephant game and share the QR so guests
+            can follow along on their own phones.
           </p>
           <button
             type="button"

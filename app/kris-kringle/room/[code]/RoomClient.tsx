@@ -71,28 +71,41 @@ function LobbyView({
   const [joining, setJoining] = useState(false);
   const [starting, setStarting] = useState(false);
   const [err, setErr] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedMsg, setCopiedMsg] = useState(false);
   const inviteUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}/kris-kringle/room/${room.code}`
       : "";
 
-  function handleCopy() {
+  const inviteText =
+    `Join my Kris Kringle game right now! 🎁\n` +
+    `Room code: ${room.code}\n` +
+    `👉 ${inviteUrl}`;
+
+  const mailtoHref =
+    `mailto:?subject=${encodeURIComponent("Join my Kris Kringle game! 🎁")}` +
+    `&body=${encodeURIComponent(inviteText)}`;
+
+  function handleCopyLink() {
     navigator.clipboard?.writeText(inviteUrl).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    }).catch(() => {});
+  }
+
+  function handleCopyMsg() {
+    navigator.clipboard?.writeText(inviteText).then(() => {
+      setCopiedMsg(true);
+      setTimeout(() => setCopiedMsg(false), 2000);
     }).catch(() => {});
   }
 
   function handleShare() {
     if (navigator.share) {
-      navigator.share({
-        title: "Join my Kris Kringle game",
-        text: `Join my Kris Kringle game — room code: ${room.code}`,
-        url: inviteUrl,
-      }).catch(() => {});
+      navigator.share({ title: "Join my Kris Kringle game", text: inviteText, url: inviteUrl }).catch(() => {});
     } else {
-      handleCopy();
+      handleCopyMsg();
     }
   }
 
@@ -154,28 +167,45 @@ function LobbyView({
           </div>
         )}
         <p className="mt-3 text-xs font-semibold text-kringle-spruce/70">
-          Scan to join · or share the code above
+          Scan to join on your own phone · or use the code above
         </p>
 
         {/* Share buttons */}
-        <div className="mt-4 flex justify-center gap-3">
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <a
+            href={mailtoHref}
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-kringle-cranberry px-3 py-2 text-sm font-bold text-white"
+          >
+            📧 Email
+          </a>
           <button
             type="button"
             onClick={handleShare}
-            className="inline-flex items-center gap-2 rounded-xl bg-kringle-spruce px-4 py-2 text-sm font-bold text-white"
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-kringle-spruce px-3 py-2 text-sm font-bold text-white"
           >
-            Share invite
+            📤 Share
           </button>
           <button
             type="button"
-            onClick={handleCopy}
-            className={`inline-flex items-center gap-2 rounded-xl border-2 px-4 py-2 text-sm font-bold transition ${
-              copied
+            onClick={handleCopyMsg}
+            className={`inline-flex items-center justify-center gap-1.5 rounded-xl border-2 px-3 py-2 text-sm font-bold transition ${
+              copiedMsg
                 ? "border-emerald-500 bg-emerald-50 text-emerald-700"
                 : "border-kringle-spruce text-kringle-spruce"
             }`}
           >
-            {copied ? "Copied!" : "Copy link"}
+            {copiedMsg ? "✓ Copied!" : "💬 Copy msg"}
+          </button>
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            className={`inline-flex items-center justify-center gap-1.5 rounded-xl border-2 px-3 py-2 text-sm font-bold transition ${
+              copiedLink
+                ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                : "border-kringle-spruce text-kringle-spruce"
+            }`}
+          >
+            {copiedLink ? "✓ Link copied!" : "🔗 Copy link"}
           </button>
         </div>
       </div>
