@@ -304,6 +304,184 @@ function LobbyView({
 }
 
 // ---------------------------------------------------------------------------
+// Image compression helper
+// ---------------------------------------------------------------------------
+
+function compressImage(file: File, maxDim: number, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return reject(new Error("no ctx"));
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("compress failed"))),
+        "image/jpeg",
+        quality,
+      );
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Photo capture + gallery — available to all devices in the room
+// ---------------------------------------------------------------------------
+
+function PhotoSection({ roomCode, isComplete }: { roomCode: string; isComplete: boolean }) {
+  const [uploading, setUploading] = useState(false);
+  const [myCount, setMyCount] = useState(0);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [fullscreen, setFullscreen] = useState<string | null>(null);
+  const [loadingPhotos, setLoadingPhotos] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const supabaseRef = useRef(createSupabaseBrowserClient());
+
+  async function loadPhotos() {
+    setLoadingPhotos(true);
+    try {
+      const supabase = supabaseRef.current;
+      const { data } = await supabase.storage
+        .from("game-photos")
+        .list(roomCode, { limit: 200, sortBy: { column: "created_at", order: "asc" } });
+      if (!data) return;
+      const urls = data
+        .filter((f) => f.name !== ".emptyFolderPlaceholder")
+        .map(
+          (f) =>
+            supabase.storage
+              .from("game-photos")
+              .getPublicUrl(`${roomCode}/${f.name}`).data.publicUrl,
+        );
+      setPhotos(urls);
+    } finally {
+      setLoadingPhotos(false);
+    }
+  }
+
+  useEffect(() => {
+    if (isComplete) loadPhotos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isComplete]);
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const blob = await compressImage(file, 1600, 0.85);
+      const path = `${roomCode}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+      const { error } = await supabaseRef.current.storage
+        .from("game-photos")
+        .upload(path, blob, { contentType: "image/jpeg" });
+      if (!error) {
+        setMyCount((n) => n + 1);
+        if (isComplete) await loadPhotos();
+      }
+    } catch {}
+    finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  return (
+    <section className="space-y-3 border-t border-slate-100 pt-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-black uppercase tracking-wide text-slate-500">
+          {isComplete ? "📸 Party photos" : "📸 Capture the moment"}
+        </h2>
+        {myCount > 0 && (
+          <span className="text-xs font-semibold text-slate-400">
+            {myCount} from you
+          </span>
+        )}
+      </div>
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleFile}
+      />
+
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        disabled={uploading}
+        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 text-sm font-bold text-slate-600 transition hover:border-kringle-spruce hover:text-kringle-spruce disabled:opacity-40"
+      >
+        {uploading ? "Uploading…" : "📸 Take a photo"}
+      </button>
+
+      {/* Gallery (shown when game is complete) */}
+      {isComplete && (
+        <>
+          {photos.length > 0 ? (
+            <div className="grid grid-cols-3 gap-1.5">
+              {photos.map((url) => (
+                <button
+                  key={url}
+                  type="button"
+                  onClick={() => setFullscreen(url)}
+                  className="aspect-square overflow-hidden rounded-xl border-2 border-slate-100"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt="Party photo" className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="py-4 text-center text-sm text-slate-400">
+              No photos yet — tap the button to capture a moment!
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={loadPhotos}
+            disabled={loadingPhotos}
+            className="min-h-10 w-full rounded-xl border border-slate-200 text-xs font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-40"
+          >
+            {loadingPhotos ? "Loading…" : "↺ Refresh photos"}
+          </button>
+        </>
+      )}
+
+      {/* Lightbox */}
+      {fullscreen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+          onClick={() => setFullscreen(null)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={fullscreen}
+            alt="Party photo"
+            className="max-h-[90vh] max-w-full rounded-xl object-contain"
+          />
+          <button
+            type="button"
+            onClick={() => setFullscreen(null)}
+            className="absolute right-4 top-4 rounded-full bg-white/20 p-2 text-2xl leading-none text-white"
+          >
+            ×
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Spectator view — for non-host players who joined on their own phones
 // ---------------------------------------------------------------------------
 
@@ -558,6 +736,9 @@ function SpectatorView({
           </ul>
         </section>
       )}
+
+      {/* Photos */}
+      <PhotoSection roomCode={room.code} isComplete={isComplete} />
 
       {/* Room code footer */}
       <p className="text-center text-xs font-semibold text-slate-400">Room {room.code}</p>
@@ -834,6 +1015,9 @@ function GameBoard({
           </ul>
         </section>
       )}
+
+      {/* Photos */}
+      <PhotoSection roomCode={room.code} isComplete={isComplete} />
     </div>
   );
 }
