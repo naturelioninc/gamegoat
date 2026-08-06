@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useReducer, useRef, useState } from "react";
+import QRCode from "react-qr-code";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   currentPlayerId,
@@ -69,10 +70,30 @@ function LobbyView({
   const [joining, setJoining] = useState(false);
   const [starting, setStarting] = useState(false);
   const [err, setErr] = useState("");
+  const [copied, setCopied] = useState(false);
   const inviteUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}/kris-kringle/room/${room.code}`
       : "";
+
+  function handleCopy() {
+    navigator.clipboard?.writeText(inviteUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {});
+  }
+
+  function handleShare() {
+    if (navigator.share) {
+      navigator.share({
+        title: "Join my Kris Kringle game",
+        text: `Join my Kris Kringle game — room code: ${room.code}`,
+        url: inviteUrl,
+      }).catch(() => {});
+    } else {
+      handleCopy();
+    }
+  }
 
   async function handleJoin(e: React.FormEvent) {
     e.preventDefault();
@@ -109,7 +130,7 @@ function LobbyView({
         <h1 className="text-4xl font-extrabold tracking-tight">Kris Kringle</h1>
       </header>
 
-      {/* Room code + share */}
+      {/* Room code + QR + share */}
       <div className="rounded-3xl border-2 border-kringle-spruce bg-kringle-spruce/5 p-6 text-center">
         <p className="text-sm font-bold uppercase tracking-widest text-kringle-spruce">
           Room code
@@ -117,17 +138,45 @@ function LobbyView({
         <p className="mt-1 font-mono text-5xl font-black tracking-[0.2em] text-kringle-spruce">
           {room.code}
         </p>
+
+        {/* QR code */}
         {inviteUrl && (
+          <div className="mt-5 flex justify-center">
+            <div className="rounded-2xl bg-white p-3 shadow-sm">
+              <QRCode
+                value={inviteUrl}
+                size={168}
+                bgColor="#ffffff"
+                fgColor="#1a5c3a"
+              />
+            </div>
+          </div>
+        )}
+        <p className="mt-3 text-xs font-semibold text-kringle-spruce/70">
+          Scan to join · or share the code above
+        </p>
+
+        {/* Share buttons */}
+        <div className="mt-4 flex justify-center gap-3">
           <button
             type="button"
-            onClick={() => {
-              navigator.clipboard?.writeText(inviteUrl).catch(() => {});
-            }}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-kringle-spruce px-4 py-2 text-sm font-bold text-white"
+            onClick={handleShare}
+            className="inline-flex items-center gap-2 rounded-xl bg-kringle-spruce px-4 py-2 text-sm font-bold text-white"
           >
-            Copy invite link
+            Share invite
           </button>
-        )}
+          <button
+            type="button"
+            onClick={handleCopy}
+            className={`inline-flex items-center gap-2 rounded-xl border-2 px-4 py-2 text-sm font-bold transition ${
+              copied
+                ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                : "border-kringle-spruce text-kringle-spruce"
+            }`}
+          >
+            {copied ? "Copied!" : "Copy link"}
+          </button>
+        </div>
       </div>
 
       {/* Player list */}

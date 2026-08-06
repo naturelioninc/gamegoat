@@ -9,6 +9,7 @@ import { randomUUID } from "crypto";
 export async function createRoom(
   hostName: string,
   preset: string = "classic",
+  hostEmail: string = "",
 ): Promise<{ code: string; playerId: string }> {
   const supabase = await createSupabaseServerClient();
   const playerId = randomUUID();
@@ -20,6 +21,7 @@ export async function createRoom(
       game_type: "kris_kringle",
       rules,
       players: [{ id: playerId, name: hostName.trim(), isHost: true }],
+      host_email: hostEmail.trim() || null,
       status: "lobby",
     })
     .select("code")

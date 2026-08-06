@@ -39,6 +39,7 @@ function SetupScreen({ onStart }: { onStart: (session: GameSession) => void }) {
   const [preset, setPreset] = useState<keyof typeof RULE_PRESETS>("classic");
   const [mode, setMode] = useState<"local" | "online">("local");
   const [hostName, setHostName] = useState("");
+  const [hostEmail, setHostEmail] = useState("");
   const [pending, startTransition] = useTransition();
   const [onlineErr, setOnlineErr] = useState("");
   const router = useRouter();
@@ -73,11 +74,11 @@ function SetupScreen({ onStart }: { onStart: (session: GameSession) => void }) {
   }
 
   function handleCreateOnlineRoom() {
-    if (!hostName.trim()) return;
+    if (!hostName.trim() || !hostEmail.trim()) return;
     setOnlineErr("");
     startTransition(async () => {
       try {
-        const { code, playerId } = await createRoom(hostName.trim(), preset);
+        const { code, playerId } = await createRoom(hostName.trim(), preset, hostEmail.trim());
         try {
           localStorage.setItem(
             `kk_player_${code}`,
@@ -122,18 +123,28 @@ function SetupScreen({ onStart }: { onStart: (session: GameSession) => void }) {
           </p>
 
           <section className="space-y-3">
-            <h2 className="text-xl font-black">Your name</h2>
+            <h2 className="text-xl font-black">Your details</h2>
             <input
               type="text"
               value={hostName}
               onChange={(e) => setHostName(e.target.value)}
-              placeholder="e.g. Sarah"
+              placeholder="Your name (e.g. Sarah)"
               maxLength={30}
+              className="min-h-12 w-full rounded-2xl border-2 border-slate-200 px-4 font-semibold focus:border-kringle-spruce focus:outline-none"
+            />
+            <input
+              type="email"
+              value={hostEmail}
+              onChange={(e) => setHostEmail(e.target.value)}
+              placeholder="Your email"
               className="min-h-12 w-full rounded-2xl border-2 border-slate-200 px-4 font-semibold focus:border-kringle-spruce focus:outline-none"
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleCreateOnlineRoom();
               }}
             />
+            <p className="text-xs text-slate-500">
+              We&apos;ll send you a recap after the game. No spam, ever.
+            </p>
           </section>
 
           <section className="space-y-3">
@@ -171,12 +182,19 @@ function SetupScreen({ onStart }: { onStart: (session: GameSession) => void }) {
           <button
             type="button"
             onClick={handleCreateOnlineRoom}
-            disabled={!hostName.trim() || pending}
+            disabled={!hostName.trim() || !hostEmail.trim() || pending}
             className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-kringle-cranberry text-lg font-black text-white shadow-[4px_4px_0_rgba(0,0,0,0.15)] disabled:opacity-40"
           >
             <GeneratedIcon name="join-code" className="h-8 w-8" />
             {pending ? "Creating room…" : "Create room"}
           </button>
+
+          <p className="text-center text-sm text-slate-500">
+            Got a room code?{" "}
+            <a href="/kris-kringle/join" className="font-semibold text-kringle-spruce underline">
+              Join a room
+            </a>
+          </p>
         </div>
       )}
 
