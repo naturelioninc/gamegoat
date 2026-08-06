@@ -134,8 +134,9 @@ function SetupScreen({ onDraw }: { onDraw: (names: string[], assignments: Assign
         type="button"
         onClick={doDraw}
         disabled={!canDraw}
-        className="min-h-14 w-full rounded-2xl bg-kringle-cranberry text-lg font-black text-white shadow-[4px_4px_0_rgba(0,0,0,0.15)] disabled:cursor-not-allowed disabled:opacity-40"
+        className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-kringle-cranberry text-lg font-black text-white shadow-[4px_4px_0_rgba(0,0,0,0.15)] disabled:cursor-not-allowed disabled:opacity-40"
       >
+        <GeneratedIcon name="draw-names" className="h-8 w-8" />
         Do the draw ({validNames.length} people)
       </button>
     </div>
@@ -167,7 +168,7 @@ function RevealScreen({
     <div className="space-y-6">
       {done ? (
         <div className="space-y-6 text-center">
-          <p className="text-5xl">🎅</p>
+          <GeneratedIcon name="secret-santa-complete" size="lg" className="mx-auto h-32 w-32 animate-kk-slide-up" />
           <p className="text-2xl font-black">Everyone has their assignment!</p>
           <p className="text-slate-600">
             {names.length} Secret Santas · keep your match private until gift day.
@@ -206,7 +207,7 @@ function RevealScreen({
                   You are buying a gift for
                 </p>
                 <p className="mt-2 text-4xl font-black text-amber-900">{recipient}</p>
-                <p className="mt-3 text-sm text-amber-700">Keep this secret until gift day! 🤫</p>
+                <p className="mt-3 text-sm text-amber-700">Keep this secret until gift day.</p>
               </div>
               <button
                 type="button"

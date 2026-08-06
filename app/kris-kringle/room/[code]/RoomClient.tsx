@@ -11,6 +11,7 @@ import {
 } from "@/lib/engine/engine";
 import type { GameState, GameActionInput } from "@/lib/engine/types";
 import { joinRoom, startGame, performRoomAction } from "../actions";
+import { GeneratedIcon } from "@/components/GeneratedIcon";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -437,7 +438,7 @@ function GameBoard({
                     <p className="mt-0.5 font-semibold">{owner}</p>
                     {gift.stealCount > 0 && (
                       <p className="text-xs text-slate-500">
-                        {locked ? "🔒 locked" : `Stolen ${gift.stealCount}×`}
+                        {locked ? <span className="inline-flex items-center gap-1"><GeneratedIcon name="locked-gift" className="h-5 w-5" /> locked</span> : `Stolen ${gift.stealCount}×`}
                       </p>
                     )}
                   </>

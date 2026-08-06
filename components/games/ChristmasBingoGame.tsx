@@ -87,7 +87,8 @@ export function ChristmasBingoGame() {
           <div role="status" aria-live="polite" className="mt-4 min-h-16 text-center">
             {bingo ? (
               <div className="animate-kk-slide-up rounded-2xl bg-amber-50 p-3 text-2xl font-black text-amber-900">
-                🎉 BINGO!
+                <GeneratedIcon name="bingo-celebration" size="md" className="mx-auto h-16 w-16" />
+                BINGO!
               </div>
             ) : (
               <p className="text-sm text-slate-600">Tap a square when the caller says it.</p>
@@ -132,7 +133,7 @@ export function ChristmasBingoGame() {
             <summary className="cursor-pointer font-bold">Called items ({callIndex + 1})</summary>
             <ul className="mt-3 grid grid-cols-2 gap-2 text-sm">
               {callDeck.slice(0, callIndex + 1).map((item) => (
-                <li key={item}>✓ {item}</li>
+                <li key={item} className="flex items-center gap-1"><GeneratedIcon name="correct" className="h-5 w-5" /> {item}</li>
               ))}
             </ul>
           </details>

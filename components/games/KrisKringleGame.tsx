@@ -116,6 +116,7 @@ function SetupScreen({ onStart }: { onStart: (session: GameSession) => void }) {
       {/* Online room creation */}
       {mode === "online" && (
         <div className="space-y-6">
+          <GeneratedIcon name="join-code" size="md" className="mx-auto h-16 w-16" />
           <p className="text-sm text-slate-600">
             Create a room — share the code with friends so they can join on their phones.
           </p>
@@ -171,8 +172,9 @@ function SetupScreen({ onStart }: { onStart: (session: GameSession) => void }) {
             type="button"
             onClick={handleCreateOnlineRoom}
             disabled={!hostName.trim() || pending}
-            className="min-h-14 w-full rounded-2xl bg-kringle-cranberry text-lg font-black text-white shadow-[4px_4px_0_rgba(0,0,0,0.15)] disabled:opacity-40"
+            className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-kringle-cranberry text-lg font-black text-white shadow-[4px_4px_0_rgba(0,0,0,0.15)] disabled:opacity-40"
           >
+            <GeneratedIcon name="join-code" className="h-8 w-8" />
             {pending ? "Creating room…" : "Create room"}
           </button>
         </div>
@@ -182,7 +184,7 @@ function SetupScreen({ onStart }: { onStart: (session: GameSession) => void }) {
       {mode === "local" && (
         <>
       <section className="space-y-4">
-        <h2 className="text-xl font-black">Players</h2>
+        <h2 className="flex items-center gap-2 text-xl font-black"><GeneratedIcon name="players" className="h-8 w-8" /> Players</h2>
         <p className="text-sm text-slate-600">
           Add one name per gift-bringer. Player order is randomized when you start.
         </p>
@@ -259,8 +261,9 @@ function SetupScreen({ onStart }: { onStart: (session: GameSession) => void }) {
         type="button"
         onClick={startGame}
         disabled={!canStart}
-        className="min-h-14 w-full rounded-2xl bg-kringle-cranberry text-lg font-black text-white shadow-[4px_4px_0_rgba(0,0,0,0.15)] disabled:cursor-not-allowed disabled:opacity-40"
+        className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-kringle-cranberry text-lg font-black text-white shadow-[4px_4px_0_rgba(0,0,0,0.15)] disabled:cursor-not-allowed disabled:opacity-40"
       >
+        <GeneratedIcon name="play" className="h-8 w-8" />
         {(() => {
           const n = validNames.length;
           return `Start game (${n} player${n !== 1 ? "s" : ""} · ${n} gift${n !== 1 ? "s" : ""})`;
@@ -311,7 +314,10 @@ function LiveGame({
       {/* Status bar */}
       <div className={`rounded-2xl border-2 p-4 ${isComplete ? "border-kringle-gold bg-amber-50" : isPaused ? "border-slate-300 bg-slate-50" : isFinalTurn ? "border-kringle-gold bg-amber-50" : "border-kringle-spruce bg-kringle-spruce text-white"}`}>
         {isComplete ? (
-          <p className="text-center text-xl font-black text-amber-900">🎁 Game over! See results below.</p>
+          <div className="flex items-center justify-center gap-3 text-center text-xl font-black text-amber-900">
+            <GeneratedIcon name="game-over" size="md" className="h-16 w-16 animate-kk-slide-up" />
+            <p>Game over! See results below.</p>
+          </div>
         ) : isPaused ? (
           <div className="flex items-center justify-between">
             <p className="font-black text-slate-700">Game paused</p>
@@ -456,7 +462,7 @@ function LiveGame({
                     )}
                   </>
                 ) : (
-                  <p className="mt-0.5 text-xs">Unopened</p>
+                  <p className="mt-0.5 inline-flex items-center gap-1 text-xs"><GeneratedIcon name="unopened-gift" className="h-5 w-5" /> Unopened</p>
                 )}
               </div>
             );
@@ -467,7 +473,7 @@ function LiveGame({
       {/* Results */}
       {isComplete && (
         <section className="rounded-2xl border-2 border-kringle-gold bg-amber-50 p-5">
-          <h2 className="text-lg font-black text-amber-900">Final results 🎁</h2>
+          <h2 className="flex items-center gap-2 text-lg font-black text-amber-900"><GeneratedIcon name="score" className="h-8 w-8" /> Final results</h2>
           <ul className="mt-3 space-y-2">
             {players.map((player) => {
               const gift = giftOwnedBy(state, player.id);

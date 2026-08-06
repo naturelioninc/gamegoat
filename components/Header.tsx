@@ -221,19 +221,19 @@ export function Header({ menuOpen, onMenuToggle, onPlayClick }: Props) {
                     href="https://xmasgoat.com/gift-ideas"
                     className="flex items-center gap-2 rounded-xl px-2 py-2 font-bold hover:bg-black hover:text-white"
                   >
-                    🛍 Gift ideas
+                    <GeneratedIcon name="gift-games" className="h-7 w-7" /> Gift ideas
                   </a>
                   <a
                     href="https://party.xmasgoat.com"
                     className="flex items-center gap-2 rounded-xl px-2 py-2 font-bold hover:bg-black hover:text-white"
                   >
-                    🎉 Party planner
+                    <GeneratedIcon name="party" className="h-7 w-7" /> Party planner
                   </a>
                   <a
                     href="https://xmasgoat.com"
                     className="flex items-center gap-2 rounded-xl px-2 py-2 font-bold hover:bg-black hover:text-white"
                   >
-                    🐐 XmasGoat.com
+                    <GeneratedIcon name="home" className="h-7 w-7" /> XmasGoat.com
                   </a>
                 </div>
                 <div className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-400">
@@ -249,7 +249,7 @@ export function Header({ menuOpen, onMenuToggle, onPlayClick }: Props) {
 
             {/* Footer bar */}
             <div className="flex flex-wrap items-center justify-between gap-2 border-t-2 border-black bg-black px-5 py-3 text-xs font-semibold text-white">
-              <p>Make Christmas legendary. 🎄</p>
+              <p>Make Christmas legendary.</p>
               <div className="flex gap-4 sm:hidden">
                 <a href="https://xmasgoat.com" className="underline">
                   XmasGoat.com
