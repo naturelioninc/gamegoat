@@ -19,6 +19,7 @@ export default async function RoomPage({
     .from("game_rooms")
     .select("*")
     .eq("code", code.toUpperCase())
+    .gt("expires_at", new Date().toISOString())
     .single();
 
   if (!room) notFound();

@@ -307,15 +307,21 @@ function GameBoard({
         )}
       </div>
 
-      {/* Actions — only active turn player sees them highlighted, but anyone can tap */}
+      {/* Actions — turn actions locked to current player; utility controls open to all */}
       {!isComplete && !isPaused && (
         <div className="space-y-3">
+          {!isMyTurn && !isFinalTurn && (
+            <p className="rounded-2xl bg-slate-50 px-4 py-3 text-center text-sm font-semibold text-slate-500">
+              Waiting for {currentName} to act…
+            </p>
+          )}
           {isFinalTurn ? (
             <>
               <button
                 type="button"
                 onClick={() => act({ type: "final_keep" })}
-                className={`min-h-12 w-full rounded-2xl font-bold text-white ${isMyTurn ? "bg-kringle-spruce" : "bg-slate-400"}`}
+                disabled={!isMyTurn}
+                className={`min-h-12 w-full rounded-2xl font-bold text-white disabled:cursor-not-allowed disabled:opacity-40 ${isMyTurn ? "bg-kringle-spruce" : "bg-slate-400"}`}
               >
                 {isMyTurn ? "Keep my gift" : `${currentName} keeps their gift`}
               </button>
@@ -331,7 +337,8 @@ function GameBoard({
                     key={g.id}
                     type="button"
                     onClick={() => act({ type: "final_swap", giftId: g.id })}
-                    className={`min-h-12 w-full rounded-2xl border-2 font-bold ${isMyTurn ? "border-kringle-cranberry text-kringle-cranberry hover:bg-kringle-cranberry hover:text-white" : "border-slate-300 text-slate-500"}`}
+                    disabled={!isMyTurn}
+                    className={`min-h-12 w-full rounded-2xl border-2 font-bold disabled:cursor-not-allowed disabled:opacity-40 ${isMyTurn ? "border-kringle-cranberry text-kringle-cranberry hover:bg-kringle-cranberry hover:text-white" : "border-slate-300 text-slate-500"}`}
                   >
                     Swap with {nameById.get(g.ownerId!)}&apos;s Gift #{g.giftNumber}
                   </button>
@@ -345,7 +352,8 @@ function GameBoard({
                   onClick={() =>
                     act({ type: "open", playerId: currentId!, giftId: unopened[0]!.id })
                   }
-                  className={`min-h-14 w-full rounded-2xl text-lg font-black text-white shadow-[3px_3px_0_rgba(0,0,0,0.12)] ${isMyTurn ? "bg-kringle-cranberry" : "bg-slate-400"}`}
+                  disabled={!isMyTurn}
+                  className={`min-h-14 w-full rounded-2xl text-lg font-black text-white shadow-[3px_3px_0_rgba(0,0,0,0.12)] disabled:cursor-not-allowed disabled:opacity-40 ${isMyTurn ? "bg-kringle-cranberry" : "bg-slate-400"}`}
                 >
                   {isMyTurn ? `Open Gift #${unopened[0]!.giftNumber}` : `${currentName} opens Gift #${unopened[0]!.giftNumber}`}
                 </button>
@@ -362,7 +370,8 @@ function GameBoard({
                       onClick={() =>
                         act({ type: "steal", playerId: currentId!, giftId: g.id })
                       }
-                      className={`min-h-12 w-full rounded-2xl border-2 font-bold ${isMyTurn ? "border-kringle-spruce text-kringle-spruce hover:bg-kringle-spruce hover:text-white" : "border-slate-300 text-slate-500"}`}
+                      disabled={!isMyTurn}
+                      className={`min-h-12 w-full rounded-2xl border-2 font-bold disabled:cursor-not-allowed disabled:opacity-40 ${isMyTurn ? "border-kringle-spruce text-kringle-spruce hover:bg-kringle-spruce hover:text-white" : "border-slate-300 text-slate-500"}`}
                     >
                       Steal Gift #{g.giftNumber} from {nameById.get(g.ownerId!)}
                     </button>

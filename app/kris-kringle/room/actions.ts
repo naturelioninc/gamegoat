@@ -39,9 +39,10 @@ export async function joinRoom(
     .from("game_rooms")
     .select("players, status")
     .eq("code", code.toUpperCase())
+    .gt("expires_at", new Date().toISOString())
     .single();
 
-  if (error || !room) return { ok: false, error: "Room not found" };
+  if (error || !room) return { ok: false, error: "Room not found or expired" };
   if (room.status !== "lobby") return { ok: false, error: "Game already started" };
 
   const players = (room.players as { id: string; name: string }[]) ?? [];
@@ -69,9 +70,10 @@ export async function startGame(code: string): Promise<{ ok: boolean; error?: st
     .from("game_rooms")
     .select("players, rules, status")
     .eq("code", code)
+    .gt("expires_at", new Date().toISOString())
     .single();
 
-  if (error || !room) return { ok: false, error: "Room not found" };
+  if (error || !room) return { ok: false, error: "Room not found or expired" };
   if (room.status !== "lobby") return { ok: false, error: "Game already started" };
 
   const players = (room.players as { id: string; name: string }[]) ?? [];
@@ -102,25 +104,35 @@ export async function performRoomAction(
 ): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createSupabaseServerClient();
 
-  const { data: room, error } = await supabase
-    .from("game_rooms")
-    .select("state")
-    .eq("code", code)
-    .single();
+  // Optimistic locking: read updated_at, write only if it hasn't changed.
+  // Retries up to 3 times on concurrent-write conflicts.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { data: room, error } = await supabase
+      .from("game_rooms")
+      .select("state, updated_at")
+      .eq("code", code)
+      .gt("expires_at", new Date().toISOString())
+      .single();
 
-  if (error || !room?.state) return { ok: false, error: "Room not found" };
+    if (error || !room?.state) return { ok: false, error: "Room not found or expired" };
 
-  const result = applyAction(room.state, action);
-  if (!result.ok) return { ok: false, error: result.error };
+    const result = applyAction(room.state, action);
+    if (!result.ok) return { ok: false, error: result.error };
 
-  const isComplete =
-    result.state.status === "complete" || result.state.phase === "complete";
+    const isComplete =
+      result.state.status === "complete" || result.state.phase === "complete";
 
-  const { error: updateError } = await supabase
-    .from("game_rooms")
-    .update({ state: result.state, ...(isComplete ? { status: "complete" } : {}) })
-    .eq("code", code);
+    const { data: written, error: updateError } = await supabase
+      .from("game_rooms")
+      .update({ state: result.state, ...(isComplete ? { status: "complete" } : {}) })
+      .eq("code", code)
+      .eq("updated_at", room.updated_at) // only write if nobody else has written since our read
+      .select("code");
 
-  if (updateError) return { ok: false, error: updateError.message };
-  return { ok: true };
+    if (updateError) return { ok: false, error: updateError.message };
+    if (written && written.length > 0) return { ok: true };
+    // 0 rows updated = concurrent write beat us; retry with fresh state
+  }
+
+  return { ok: false, error: "Could not apply action — please try again" };
 }
