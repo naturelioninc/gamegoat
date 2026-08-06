@@ -1,6 +1,7 @@
 "use client";
 
-import { useReducer, useState } from "react";
+import { useReducer, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   createInitialState,
   applyAction,
@@ -12,6 +13,7 @@ import {
 } from "@/lib/engine/engine";
 import type { GameState, GameRules, GameActionInput } from "@/lib/engine/types";
 import { RULE_PRESETS } from "@/lib/engine/types";
+import { createRoom } from "@/app/kris-kringle/room/actions";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -34,6 +36,11 @@ interface GameSession {
 function SetupScreen({ onStart }: { onStart: (session: GameSession) => void }) {
   const [names, setNames] = useState(["", "", "", ""]);
   const [preset, setPreset] = useState<keyof typeof RULE_PRESETS>("classic");
+  const [mode, setMode] = useState<"local" | "online">("local");
+  const [hostName, setHostName] = useState("");
+  const [pending, startTransition] = useTransition();
+  const [onlineErr, setOnlineErr] = useState("");
+  const router = useRouter();
 
   const validNames = names.map((n) => n.trim()).filter(Boolean);
   const canStart = validNames.length >= 2 && new Set(validNames).size === validNames.length;
@@ -64,10 +71,79 @@ function SetupScreen({ onStart }: { onStart: (session: GameSession) => void }) {
     onStart({ players, state });
   }
 
+  function handleCreateOnlineRoom() {
+    if (!hostName.trim()) return;
+    setOnlineErr("");
+    startTransition(async () => {
+      try {
+        const { code, playerId } = await createRoom(hostName.trim());
+        try {
+          localStorage.setItem(
+            `kk_player_${code}`,
+            JSON.stringify({ playerId, playerName: hostName.trim() }),
+          );
+        } catch {}
+        router.push(`/kris-kringle/room/${code}`);
+      } catch (e: unknown) {
+        setOnlineErr(e instanceof Error ? e.message : "Could not create room");
+      }
+    });
+  }
+
   const duplicates = validNames.length !== new Set(validNames).size;
 
   return (
     <div className="space-y-8">
+      {/* Mode tabs */}
+      <div className="flex rounded-2xl border-2 border-slate-200 p-1">
+        {(["local", "online"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMode(m)}
+            className={`flex-1 rounded-xl py-2 text-sm font-black transition ${
+              mode === m
+                ? "bg-kringle-spruce text-white"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            {m === "local" ? "Play locally" : "Play online"}
+          </button>
+        ))}
+      </div>
+
+      {/* Online room creation */}
+      {mode === "online" && (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Create a room — share the code with friends so they can join on their phones.
+          </p>
+          <input
+            type="text"
+            value={hostName}
+            onChange={(e) => setHostName(e.target.value)}
+            placeholder="Your name"
+            maxLength={30}
+            className="min-h-12 w-full rounded-2xl border-2 border-slate-200 px-4 font-semibold focus:border-kringle-spruce focus:outline-none"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleCreateOnlineRoom();
+            }}
+          />
+          {onlineErr && <p className="text-sm font-semibold text-red-600">{onlineErr}</p>}
+          <button
+            type="button"
+            onClick={handleCreateOnlineRoom}
+            disabled={!hostName.trim() || pending}
+            className="min-h-14 w-full rounded-2xl bg-kringle-cranberry text-lg font-black text-white shadow-[4px_4px_0_rgba(0,0,0,0.15)] disabled:opacity-40"
+          >
+            {pending ? "Creating room…" : "Create room"}
+          </button>
+        </div>
+      )}
+
+      {/* Local setup */}
+      {mode === "local" && (
+        <>
       <section className="space-y-4">
         <h2 className="text-xl font-black">Players</h2>
         <p className="text-sm text-slate-600">
@@ -150,6 +226,8 @@ function SetupScreen({ onStart }: { onStart: (session: GameSession) => void }) {
       >
         Start game ({validNames.length} players · {validNames.length} gifts)
       </button>
+        </>
+      )}
     </div>
   );
 }
