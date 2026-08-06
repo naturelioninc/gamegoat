@@ -9,16 +9,19 @@ export function JoinForm({ exchangeId }: { exchangeId: string }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
+  const [nameConflict, setNameConflict] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || !email.trim()) return;
     setError("");
+    setNameConflict(false);
     startTransition(async () => {
       const result = await joinExchange(exchangeId, name, email);
       if (!result.ok) {
         setError(result.error);
+        setNameConflict(result.error.includes("already a \""));
       } else {
         router.push(
           `/kris-kringle/exchange/${exchangeId}/wishlist?p=${result.participantId}`,
@@ -37,11 +40,15 @@ export function JoinForm({ exchangeId }: { exchangeId: string }) {
         <input
           type="text"
           value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Your name"
+          onChange={(e) => { setName(e.target.value); setNameConflict(false); setError(""); }}
+          placeholder="Your name (e.g. Sarah, Uncle Dave)"
           maxLength={50}
           required
-          className="min-h-12 w-full rounded-2xl border-2 border-slate-200 px-4 font-semibold focus:border-kringle-spruce focus:outline-none"
+          className={`min-h-12 w-full rounded-2xl border-2 px-4 font-semibold focus:outline-none ${
+            nameConflict
+              ? "border-amber-400 bg-amber-50 focus:border-amber-500"
+              : "border-slate-200 focus:border-kringle-spruce"
+          }`}
         />
         <input
           type="email"

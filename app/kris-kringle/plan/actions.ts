@@ -138,7 +138,14 @@ export async function joinExchange(
   });
 
   if (error) {
-    if (error.code === "23505") return { ok: false, error: "Name or email already taken in this exchange" };
+    if (error.code === "23505") {
+      if (error.message.includes("_name")) {
+        const firstName = name.trim().split(" ")[0];
+        const suggestion = `${firstName} ${name.trim().split(" ").slice(1)[0]?.[0] ?? ""}`.trim();
+        return { ok: false, error: `There's already a "${name.trim()}" in this exchange. Try adding an initial or nickname — e.g. "${suggestion}." or "${firstName} (nickname)".` };
+      }
+      return { ok: false, error: "That email is already registered. Check your inbox for the original invite link." };
+    }
     return { ok: false, error: "Could not join — please try again" };
   }
 
