@@ -76,7 +76,7 @@ function SetupScreen({ onStart }: { onStart: (session: GameSession) => void }) {
     setOnlineErr("");
     startTransition(async () => {
       try {
-        const { code, playerId } = await createRoom(hostName.trim());
+        const { code, playerId } = await createRoom(hostName.trim(), preset);
         try {
           localStorage.setItem(
             `kk_player_${code}`,
@@ -114,21 +114,57 @@ function SetupScreen({ onStart }: { onStart: (session: GameSession) => void }) {
 
       {/* Online room creation */}
       {mode === "online" && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <p className="text-sm text-slate-600">
             Create a room — share the code with friends so they can join on their phones.
           </p>
-          <input
-            type="text"
-            value={hostName}
-            onChange={(e) => setHostName(e.target.value)}
-            placeholder="Your name"
-            maxLength={30}
-            className="min-h-12 w-full rounded-2xl border-2 border-slate-200 px-4 font-semibold focus:border-kringle-spruce focus:outline-none"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleCreateOnlineRoom();
-            }}
-          />
+
+          <section className="space-y-3">
+            <h2 className="text-xl font-black">Your name</h2>
+            <input
+              type="text"
+              value={hostName}
+              onChange={(e) => setHostName(e.target.value)}
+              placeholder="e.g. Sarah"
+              maxLength={30}
+              className="min-h-12 w-full rounded-2xl border-2 border-slate-200 px-4 font-semibold focus:border-kringle-spruce focus:outline-none"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleCreateOnlineRoom();
+              }}
+            />
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-xl font-black">Rules</h2>
+            <div className="grid gap-3">
+              {(Object.entries(RULE_PRESETS) as [keyof typeof RULE_PRESETS, GameRules][]).map(
+                ([key, rules]) => (
+                  <label
+                    key={key}
+                    className={`flex cursor-pointer items-start gap-3 rounded-2xl border-2 p-4 transition ${preset === key ? "border-kringle-spruce bg-kringle-spruce/5" : "border-slate-200 hover:border-slate-300"}`}
+                  >
+                    <input
+                      type="radio"
+                      name="online-preset"
+                      value={key}
+                      checked={preset === key}
+                      onChange={() => setPreset(key)}
+                      className="mt-0.5"
+                    />
+                    <div>
+                      <p className="font-black capitalize">{key}</p>
+                      <p className="mt-0.5 text-sm text-slate-600">
+                        Max {rules.maxSteals} steal{rules.maxSteals !== 1 ? "s" : ""} ·{" "}
+                        {rules.allowImmediateStealback ? "Steal-back allowed" : "No immediate steal-back"} ·{" "}
+                        {rules.firstPlayerFinalTurn ? "Player #1 gets a final turn" : "No final turn"}
+                      </p>
+                    </div>
+                  </label>
+                ),
+              )}
+            </div>
+          </section>
+
           {onlineErr && <p className="text-sm font-semibold text-red-600">{onlineErr}</p>}
           <button
             type="button"
@@ -224,7 +260,10 @@ function SetupScreen({ onStart }: { onStart: (session: GameSession) => void }) {
         disabled={!canStart}
         className="min-h-14 w-full rounded-2xl bg-kringle-cranberry text-lg font-black text-white shadow-[4px_4px_0_rgba(0,0,0,0.15)] disabled:cursor-not-allowed disabled:opacity-40"
       >
-        Start game ({validNames.length} players · {validNames.length} gifts)
+        {(() => {
+          const n = validNames.length;
+          return `Start game (${n} player${n !== 1 ? "s" : ""} · ${n} gift${n !== 1 ? "s" : ""})`;
+        })()}
       </button>
         </>
       )}

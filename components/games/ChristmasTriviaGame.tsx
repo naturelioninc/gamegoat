@@ -4,12 +4,15 @@ import { useState } from "react";
 import { CHRISTMAS_TRIVIA } from "@/lib/games/christmas-trivia";
 
 export function ChristmasTriviaGame() {
+  const [questions, setQuestions] = useState(() =>
+    [...CHRISTMAS_TRIVIA].sort(() => Math.random() - 0.5),
+  );
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [score, setScore] = useState(0);
   const [answered, setAnswered] = useState(false);
-  const question = CHRISTMAS_TRIVIA[index]!;
-  const finished = index === CHRISTMAS_TRIVIA.length - 1 && answered;
+  const question = questions[index]!;
+  const finished = index === questions.length - 1 && answered;
 
   function checkAnswer() {
     if (!selected || answered) return;
@@ -24,6 +27,7 @@ export function ChristmasTriviaGame() {
   }
 
   function restart() {
+    setQuestions([...CHRISTMAS_TRIVIA].sort(() => Math.random() - 0.5));
     setIndex(0);
     setSelected(null);
     setScore(0);
@@ -38,7 +42,7 @@ export function ChristmasTriviaGame() {
       <div className="bg-kringle-spruce p-5 text-white sm:p-6">
         <div className="flex items-center justify-between gap-4 text-sm font-bold">
           <span>
-            Question {index + 1} of {CHRISTMAS_TRIVIA.length}
+            Question {index + 1} of {questions.length}
           </span>
           <span>Score: {score}</span>
         </div>
@@ -47,12 +51,12 @@ export function ChristmasTriviaGame() {
           role="progressbar"
           aria-label="Trivia progress"
           aria-valuemin={1}
-          aria-valuemax={CHRISTMAS_TRIVIA.length}
+          aria-valuemax={questions.length}
           aria-valuenow={index + 1}
         >
           <div
             className="h-full rounded-full bg-white transition-all"
-            style={{ width: `${((index + 1) / CHRISTMAS_TRIVIA.length) * 100}%` }}
+            style={{ width: `${((index + 1) / questions.length) * 100}%` }}
           />
         </div>
       </div>
@@ -109,7 +113,7 @@ export function ChristmasTriviaGame() {
         ) : finished ? (
           <div className="space-y-3 text-center">
             <p className="text-xl font-bold">
-              Final score: {score} / {CHRISTMAS_TRIVIA.length}
+              Final score: {score} / {questions.length}
             </p>
             <button
               type="button"

@@ -8,14 +8,17 @@ import { randomUUID } from "crypto";
 
 export async function createRoom(
   hostName: string,
+  preset: string = "classic",
 ): Promise<{ code: string; playerId: string }> {
   const supabase = await createSupabaseServerClient();
   const playerId = randomUUID();
+  const rules = RULE_PRESETS[preset as keyof typeof RULE_PRESETS] ?? RULE_PRESETS.classic;
 
   const { data, error } = await supabase
     .from("game_rooms")
     .insert({
       game_type: "kris_kringle",
+      rules,
       players: [{ id: playerId, name: hostName.trim(), isHost: true }],
       status: "lobby",
     })

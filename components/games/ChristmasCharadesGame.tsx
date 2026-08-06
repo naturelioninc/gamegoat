@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import { CHRISTMAS_CHARADES, nextCharadesIndex } from "@/lib/games/christmas-charades";
 
 const ROUND_SECONDS = 60;
@@ -17,7 +18,11 @@ export function ChristmasCharadesGame() {
     if (!running) return;
     if (seconds === 0) {
       setRunning(false);
+      Haptics.vibrate({ duration: 400 }).catch(() => {});
       return;
+    }
+    if (seconds === 10 || seconds === 5) {
+      Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {});
     }
     const timer = window.setTimeout(() => setSeconds((value) => value - 1), 1000);
     return () => window.clearTimeout(timer);
