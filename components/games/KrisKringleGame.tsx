@@ -318,8 +318,9 @@ function LiveGame({
             <button
               type="button"
               onClick={() => act({ type: "resume" })}
-              className="rounded-xl bg-kringle-spruce px-4 py-2 text-sm font-bold text-white"
+              className="flex items-center gap-1.5 rounded-xl bg-kringle-spruce px-4 py-2 text-sm font-bold text-white"
             >
+              <GeneratedIcon name="resume" className="h-6 w-6" />
               Resume
             </button>
           </div>
@@ -397,22 +398,25 @@ function LiveGame({
                 <button
                   type="button"
                   onClick={() => act({ type: "pause" })}
-                  className="min-h-10 flex-1 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600"
+                  className="flex min-h-10 flex-1 items-center justify-center gap-1 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600"
                 >
+                  <GeneratedIcon name="pause" className="h-6 w-6" />
                   Pause
                 </button>
                 <button
                   type="button"
                   onClick={() => act({ type: "advance" })}
-                  className="min-h-10 flex-1 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600"
+                  className="flex min-h-10 flex-1 items-center justify-center gap-1 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600"
                 >
+                  <GeneratedIcon name="skip-turn" className="h-6 w-6" />
                   Skip turn
                 </button>
                 <button
                   type="button"
                   onClick={() => { if (confirm("End the game now?")) act({ type: "end" }); }}
-                  className="min-h-10 flex-1 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600"
+                  className="flex min-h-10 flex-1 items-center justify-center gap-1 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600"
                 >
+                  <GeneratedIcon name="end-game" className="h-6 w-6" />
                   End game
                 </button>
               </div>

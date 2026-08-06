@@ -81,8 +81,9 @@ export function ChristmasCharadesGame() {
                   setSkips((value) => value + 1);
                   advance();
                 }}
-                className="min-h-14 rounded-2xl border-2 border-slate-300 bg-white text-lg font-bold text-slate-700"
+                className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border-2 border-slate-300 bg-white text-lg font-bold text-slate-700"
               >
+                <GeneratedIcon name="skip-turn" className="h-8 w-8" />
                 Skip
               </button>
               <button
@@ -91,9 +92,10 @@ export function ChristmasCharadesGame() {
                   setScore((value) => value + 1);
                   advance();
                 }}
-                className="min-h-14 rounded-2xl bg-kringle-cranberry text-lg font-bold text-white"
+                className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-kringle-cranberry text-lg font-bold text-white"
               >
-                ✓ Got it
+                <GeneratedIcon name="correct" className="h-8 w-8" />
+                Got it
               </button>
             </>
           ) : (

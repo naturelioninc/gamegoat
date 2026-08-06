@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CHRISTMAS_TRIVIA } from "@/lib/games/christmas-trivia";
+import { GeneratedIcon } from "@/components/GeneratedIcon";
 
 export function ChristmasTriviaGame() {
   const [questions, setQuestions] = useState(() =>
@@ -95,7 +96,8 @@ export function ChristmasTriviaGame() {
             role="status"
             className={`rounded-2xl p-4 ${selected === question.answer ? "bg-emerald-50 text-emerald-900" : "bg-amber-50 text-amber-950"}`}
           >
-            <p className="font-bold">
+            <p className="flex items-center gap-2 font-bold">
+              <GeneratedIcon name={selected === question.answer ? "correct" : "incorrect"} className="h-8 w-8" />
               {selected === question.answer ? "Correct!" : `The answer is ${question.answer}.`}
             </p>
             <p className="mt-1 text-sm leading-relaxed">{question.explanation}</p>

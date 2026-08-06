@@ -8,6 +8,7 @@ import {
   hasBingo,
   shuffled,
 } from "@/lib/games/christmas-bingo";
+import { GeneratedIcon } from "@/components/GeneratedIcon";
 
 export function ChristmasBingoGame() {
   const [mode, setMode] = useState<"card" | "caller">("card");
@@ -96,15 +97,17 @@ export function ChristmasBingoGame() {
             <button
               type="button"
               onClick={newCard}
-              className="min-h-12 rounded-2xl bg-kringle-cranberry font-bold text-white"
+              className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-kringle-cranberry font-bold text-white"
             >
+              <GeneratedIcon name="randomize" className="h-8 w-8" />
               New card
             </button>
             <button
               type="button"
               onClick={() => window.print()}
-              className="min-h-12 rounded-2xl border-2 border-kringle-spruce font-bold text-kringle-spruce"
+              className="flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-kringle-spruce font-bold text-kringle-spruce"
             >
+              <GeneratedIcon name="print" className="h-8 w-8" />
               Print
             </button>
           </div>
