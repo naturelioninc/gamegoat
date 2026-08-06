@@ -5,6 +5,10 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { MAIN_GAMES, WARMUP_GAMES } from "@/lib/games";
+import {
+  GeneratedIcon,
+  type GeneratedIconName,
+} from "@/components/GeneratedIcon";
 
 interface Props {
   menuOpen: boolean;
@@ -13,16 +17,14 @@ interface Props {
 }
 
 function GameIconCard({
-  emoji,
-  bg,
+  icon,
   name,
   subtitle,
   href,
   large,
   onClick,
 }: {
-  emoji: string;
-  bg: string;
+  icon: GeneratedIconName;
   name: string;
   subtitle: string;
   href: string;
@@ -36,13 +38,7 @@ function GameIconCard({
         onClick={onClick}
         className="flex items-center gap-3 rounded-2xl border-2 border-black bg-white p-4 shadow-[3px_3px_0_#000] transition hover:-translate-y-0.5 hover:shadow-[4px_4px_0_#000] active:scale-95"
       >
-        <span
-          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-3xl"
-          style={{ backgroundColor: bg }}
-          aria-hidden="true"
-        >
-          {emoji}
-        </span>
+        <GeneratedIcon name={icon} size="md" className="h-14 w-14 shrink-0" />
         <div>
           <p className="font-black leading-tight">{name}</p>
           <p className="text-xs text-slate-500">{subtitle}</p>
@@ -56,13 +52,7 @@ function GameIconCard({
       onClick={onClick}
       className="flex flex-col items-center gap-2 rounded-2xl border-2 border-slate-200 bg-white p-3 text-center transition hover:border-black active:scale-95"
     >
-      <span
-        className="flex h-11 w-11 items-center justify-center rounded-xl text-2xl"
-        style={{ backgroundColor: bg }}
-        aria-hidden="true"
-      >
-        {emoji}
-      </span>
+      <GeneratedIcon name={icon} size="md" className="h-11 w-11" />
       <p className="text-[11px] font-black leading-tight">{name}</p>
     </Link>
   );
@@ -83,7 +73,10 @@ export function Header({ menuOpen, onMenuToggle, onPlayClick }: Props) {
   useEffect(() => {
     if (!menuOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { onMenuToggle(); triggerRef.current?.focus(); }
+      if (e.key === "Escape") {
+        onMenuToggle();
+        triggerRef.current?.focus();
+      }
     };
     const onClick = (e: MouseEvent) => {
       if (!menuRef.current?.contains(e.target as Node)) onMenuToggle();
@@ -96,7 +89,9 @@ export function Header({ menuOpen, onMenuToggle, onPlayClick }: Props) {
     };
   }, [menuOpen, onMenuToggle]);
 
-  const close = () => { if (menuOpen) onMenuToggle(); };
+  const close = () => {
+    if (menuOpen) onMenuToggle();
+  };
 
   return (
     <header className="sticky top-0 z-40 border-b-2 border-black bg-[#fffdf7]/95 backdrop-blur">
@@ -117,9 +112,15 @@ export function Header({ menuOpen, onMenuToggle, onPlayClick }: Props) {
             className="flex h-5 w-5 flex-col items-center justify-center gap-[4px] transition-transform"
             aria-hidden="true"
           >
-            <span className={`block h-0.5 w-4 bg-current transition-all ${menuOpen ? "translate-y-[6px] rotate-45" : ""}`} />
-            <span className={`block h-0.5 bg-current transition-all ${menuOpen ? "w-0 opacity-0" : "w-4"}`} />
-            <span className={`block h-0.5 w-4 bg-current transition-all ${menuOpen ? "-translate-y-[6px] -rotate-45" : ""}`} />
+            <span
+              className={`block h-0.5 w-4 bg-current transition-all ${menuOpen ? "translate-y-[6px] rotate-45" : ""}`}
+            />
+            <span
+              className={`block h-0.5 bg-current transition-all ${menuOpen ? "w-0 opacity-0" : "w-4"}`}
+            />
+            <span
+              className={`block h-0.5 w-4 bg-current transition-all ${menuOpen ? "-translate-y-[6px] -rotate-45" : ""}`}
+            />
           </span>
           <span className="hidden sm:inline">Menu</span>
         </button>
@@ -147,7 +148,7 @@ export function Header({ menuOpen, onMenuToggle, onPlayClick }: Props) {
           onClick={onPlayClick}
           className="inline-flex min-h-11 items-center gap-1.5 rounded-full border-2 border-black bg-kringle-cranberry px-3 text-xs font-extrabold uppercase tracking-wide text-white shadow-[2px_2px_0_#000] transition hover:-translate-y-0.5 sm:px-5 sm:text-sm"
         >
-          <span aria-hidden="true">🎮</span>
+          <GeneratedIcon name="play" size="sm" className="h-6 w-6" />
           <span>Play</span>
         </button>
 
@@ -158,7 +159,6 @@ export function Header({ menuOpen, onMenuToggle, onPlayClick }: Props) {
             className="absolute left-3 right-3 top-[calc(100%+8px)] z-50 overflow-hidden rounded-3xl border-2 border-black bg-[#fffdf7] shadow-[6px_6px_0_#000] sm:left-6 sm:right-6"
           >
             <div className="grid gap-4 p-4 sm:grid-cols-[1fr_1fr_auto] sm:p-5">
-
               {/* Main event */}
               <section>
                 <p className="mb-2 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-kringle-cranberry">
@@ -170,8 +170,7 @@ export function Header({ menuOpen, onMenuToggle, onPlayClick }: Props) {
                     <GameIconCard
                       key={g.href}
                       href={g.href}
-                      emoji={g.emoji}
-                      bg={g.iconBg}
+                      icon={g.icon}
                       name={g.name}
                       subtitle={g.description}
                       large
@@ -195,18 +194,18 @@ export function Header({ menuOpen, onMenuToggle, onPlayClick }: Props) {
                       onClick={close}
                       className="flex items-center gap-3 rounded-2xl border-2 border-slate-200 bg-white p-3 transition hover:border-black active:scale-95 sm:p-3"
                     >
-                      <span
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl"
-                        style={{ backgroundColor: g.iconBg }}
-                        aria-hidden="true"
-                      >
-                        {g.emoji}
-                      </span>
+                      <GeneratedIcon
+                        name={g.icon}
+                        size="md"
+                        className="h-10 w-10 shrink-0"
+                      />
                       <div className="hidden sm:block">
                         <p className="text-sm font-black">{g.name}</p>
                         <p className="text-xs text-slate-500">{g.subtitle}</p>
                       </div>
-                      <p className="text-[10px] font-black sm:hidden">{g.name}</p>
+                      <p className="text-[10px] font-black sm:hidden">
+                        {g.name}
+                      </p>
                     </Link>
                   ))}
                 </div>
@@ -238,7 +237,12 @@ export function Header({ menuOpen, onMenuToggle, onPlayClick }: Props) {
                   </a>
                 </div>
                 <div className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-400">
-                  <a href="https://xmasgoat.com/privacy" className="hover:underline">Privacy</a>
+                  <a
+                    href="https://xmasgoat.com/privacy"
+                    className="hover:underline"
+                  >
+                    Privacy
+                  </a>
                 </div>
               </section>
             </div>
@@ -247,8 +251,12 @@ export function Header({ menuOpen, onMenuToggle, onPlayClick }: Props) {
             <div className="flex flex-wrap items-center justify-between gap-2 border-t-2 border-black bg-black px-5 py-3 text-xs font-semibold text-white">
               <p>Make Christmas legendary. 🎄</p>
               <div className="flex gap-4 sm:hidden">
-                <a href="https://xmasgoat.com" className="underline">XmasGoat.com</a>
-                <a href="https://party.xmasgoat.com" className="underline">Party Goat</a>
+                <a href="https://xmasgoat.com" className="underline">
+                  XmasGoat.com
+                </a>
+                <a href="https://party.xmasgoat.com" className="underline">
+                  Party Goat
+                </a>
               </div>
             </div>
           </div>

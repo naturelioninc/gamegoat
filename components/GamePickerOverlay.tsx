@@ -3,22 +3,24 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { MAIN_GAMES, WARMUP_GAMES } from "@/lib/games";
+import {
+  GeneratedIcon,
+  type GeneratedIconName,
+} from "@/components/GeneratedIcon";
 
 interface Props {
   onClose: () => void;
 }
 
-function GameIcon({ emoji, bg, size = "lg" }: { emoji: string; bg: string; size?: "lg" | "sm" }) {
+function GameIcon({
+  icon,
+  size = "lg",
+}: {
+  icon: GeneratedIconName;
+  size?: "lg" | "sm";
+}) {
   const dim = size === "lg" ? "h-16 w-16 text-3xl" : "h-12 w-12 text-xl";
-  return (
-    <span
-      className={`flex shrink-0 items-center justify-center rounded-2xl ${dim}`}
-      style={{ backgroundColor: bg }}
-      aria-hidden="true"
-    >
-      {emoji}
-    </span>
-  );
+  return <GeneratedIcon name={icon} size="md" className={`shrink-0 ${dim}`} />;
 }
 
 export function GamePickerOverlay({ onClose }: Props) {
@@ -78,7 +80,7 @@ export function GamePickerOverlay({ onClose }: Props) {
                   onClick={onClose}
                   className="flex flex-col items-center gap-2 rounded-2xl border-2 border-black bg-white p-4 text-center shadow-[3px_3px_0_#000] transition active:scale-95"
                 >
-                  <GameIcon emoji={game.emoji} bg={game.iconBg} size="lg" />
+                  <GameIcon icon={game.icon} size="lg" />
                   <div>
                     <p className="font-black leading-tight">{game.name}</p>
                     <p className="text-xs text-slate-500">{game.subtitle}</p>
@@ -103,8 +105,10 @@ export function GamePickerOverlay({ onClose }: Props) {
                   onClick={onClose}
                   className="flex flex-col items-center gap-2 rounded-2xl border-2 border-slate-200 bg-white p-3 text-center transition hover:border-black active:scale-95"
                 >
-                  <GameIcon emoji={game.emoji} bg={game.iconBg} size="sm" />
-                  <p className="text-xs font-black leading-tight">{game.name}</p>
+                  <GameIcon icon={game.icon} size="sm" />
+                  <p className="text-xs font-black leading-tight">
+                    {game.name}
+                  </p>
                 </Link>
               ))}
             </div>

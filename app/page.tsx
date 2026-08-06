@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { GeneratedIcon } from "@/components/GeneratedIcon";
 
 export const metadata: Metadata = {
   title: "Game Goat — Christmas Party Games",
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
 const MAIN_EVENTS = [
   {
     href: "/kris-kringle",
-    emoji: "🎁",
+    icon: "white-elephant",
     name: "Kris Kringle",
     subtitle: "White Elephant gift exchange",
     description:
@@ -21,7 +22,7 @@ const MAIN_EVENTS = [
   },
   {
     href: "/secret-santa",
-    emoji: "🎅",
+    icon: "secret-santa",
     name: "Secret Santa",
     subtitle: "Private name draw",
     description:
@@ -34,21 +35,21 @@ const MAIN_EVENTS = [
 const WARMUP_GAMES = [
   {
     href: "/trivia",
-    emoji: "🧠",
+    icon: "trivia",
     name: "Christmas Trivia",
     description: "15 questions · traditions, music, movies & food",
     time: "~10 min",
   },
   {
     href: "/charades",
-    emoji: "🎭",
+    icon: "charades",
     name: "Christmas Charades",
     description: "60-second rounds · no words or sounds",
     time: "~15 min",
   },
   {
     href: "/bingo",
-    emoji: "❄️",
+    icon: "bingo",
     name: "Christmas Bingo",
     description: "Random cards · auto bingo detection · printable",
     time: "~20 min",
@@ -73,8 +74,8 @@ export default function HomePage() {
           Christmas party games
         </h1>
         <p className="mx-auto max-w-xl text-lg leading-relaxed text-slate-600">
-          Run a Kris Kringle or Secret Santa for the main event, then warm up the
-          room with trivia, charades, or bingo.
+          Run a Kris Kringle or Secret Santa for the main event, then warm up
+          the room with trivia, charades, or bingo.
         </p>
         <p className="text-sm font-semibold text-slate-500">
           Free · no account · works on any phone
@@ -101,10 +102,14 @@ export default function HomePage() {
                   {game.badge}
                 </span>
               )}
-              <p className="text-4xl" aria-hidden="true">{game.emoji}</p>
+              <GeneratedIcon name={game.icon} size="md" className="h-14 w-14" />
               <h2 className="mt-3 text-2xl font-black">{game.name}</h2>
-              <p className="text-sm font-semibold text-kringle-cranberry">{game.subtitle}</p>
-              <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-600">{game.description}</p>
+              <p className="text-sm font-semibold text-kringle-cranberry">
+                {game.subtitle}
+              </p>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-600">
+                {game.description}
+              </p>
               <span className="mt-5 inline-flex min-h-11 items-center rounded-full border-2 border-black bg-kringle-cranberry px-5 text-sm font-black text-white shadow-[2px_2px_0_#000] group-hover:-translate-y-0.5">
                 {game.cta}
               </span>
@@ -122,7 +127,8 @@ export default function HomePage() {
           <div className="h-0.5 flex-1 bg-slate-300" />
         </div>
         <p className="mb-4 text-sm text-slate-600">
-          Play these before the main event — great while guests are still arriving.
+          Play these before the main event — great while guests are still
+          arriving.
         </p>
         <div className="grid gap-4 sm:grid-cols-3">
           {WARMUP_GAMES.map((game) => (
@@ -131,12 +137,16 @@ export default function HomePage() {
               href={game.href}
               className="group flex flex-col rounded-2xl border-2 border-slate-200 bg-white p-5 transition hover:border-kringle-spruce hover:shadow-sm"
             >
-              <p className="text-3xl" aria-hidden="true">{game.emoji}</p>
+              <GeneratedIcon name={game.icon} size="md" className="h-12 w-12" />
               <h2 className="mt-2 font-black">{game.name}</h2>
-              <p className="mt-1 flex-1 text-sm text-slate-600">{game.description}</p>
+              <p className="mt-1 flex-1 text-sm text-slate-600">
+                {game.description}
+              </p>
               <div className="mt-3 flex items-center justify-between text-xs font-semibold text-slate-500">
                 <span>{game.time}</span>
-                <span className="text-kringle-cranberry group-hover:underline">Play free →</span>
+                <span className="text-kringle-cranberry group-hover:underline">
+                  Play free →
+                </span>
               </div>
             </Link>
           ))}
@@ -150,7 +160,8 @@ export default function HomePage() {
           <div>
             <p className="font-black">1 · Arrivals: Trivia or Bingo</p>
             <p className="mt-1 text-sm text-white/75">
-              Guests trickle in. Trivia or bingo keeps early arrivals entertained.
+              Guests trickle in. Trivia or bingo keeps early arrivals
+              entertained.
             </p>
           </div>
           <div>
@@ -171,7 +182,8 @@ export default function HomePage() {
       {/* Cross-link to Party Goat */}
       <section className="rounded-3xl border-2 border-amber-200 bg-amber-50 p-6 text-center">
         <p className="font-semibold text-amber-900">
-          Also planning the party? Manage guests, food, venue, and budget in one place.
+          Also planning the party? Manage guests, food, venue, and budget in one
+          place.
         </p>
         <a
           href="https://party.xmasgoat.com"
