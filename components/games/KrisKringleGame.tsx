@@ -195,6 +195,22 @@ function SetupScreen({ onStart }: { onStart: (session: GameSession) => void }) {
               Join a room
             </a>
           </p>
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-slate-200" />
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">or</span>
+            <div className="flex-1 h-px bg-slate-200" />
+          </div>
+
+          <div className="rounded-2xl border-2 border-slate-200 bg-slate-50 p-4 text-center space-y-2">
+            <p className="text-sm font-semibold text-slate-600">Planning ahead for a future party?</p>
+            <a
+              href="/kris-kringle/plan"
+              className="inline-block rounded-xl border-2 border-kringle-spruce px-4 py-2 text-sm font-black text-kringle-spruce hover:bg-kringle-spruce hover:text-white transition"
+            >
+              Set up an exchange →
+            </a>
+          </div>
         </div>
       )}
 
