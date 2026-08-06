@@ -22,6 +22,7 @@ interface RoomPlayer {
   id: string;
   name: string;
   isHost?: boolean;
+  isManual?: boolean;
 }
 
 interface GameRoom {
@@ -197,14 +198,17 @@ function LobbyView({
                     : "border-slate-200"
                 }`}
               >
-                <span className="h-2 w-2 flex-shrink-0 rounded-full bg-emerald-400" />
+                <span className={`h-2 w-2 flex-shrink-0 rounded-full ${p.isManual ? "bg-slate-300" : "bg-emerald-400"}`} />
                 {p.name}
                 {p.isHost && (
                   <span className="ml-auto rounded-full bg-kringle-gold/20 px-2 py-0.5 text-xs font-bold text-amber-800">
                     host
                   </span>
                 )}
-                {p.id === myPlayerId && !p.isHost && (
+                {p.isManual && (
+                  <span className="ml-auto text-xs text-slate-400">host controls</span>
+                )}
+                {p.id === myPlayerId && !p.isHost && !p.isManual && (
                   <span className="ml-auto text-xs text-slate-500">you</span>
                 )}
               </li>
@@ -282,6 +286,10 @@ function GameBoard({
   const currentId = currentPlayerId(state);
   const currentName = currentId ? nameById.get(currentId) : null;
   const isMyTurn = !!myPlayerId && currentId === myPlayerId;
+  // Host device can act for manually-added players (no phone of their own)
+  const isHostDevice = !!myPlayerId && room.players.find((p) => p.id === myPlayerId)?.isHost;
+  const currentPlayerIsManual = room.players.find((p) => p.id === currentId)?.isManual ?? false;
+  const canAct = isMyTurn || (!!isHostDevice && currentPlayerIsManual);
   const steals = currentId ? eligibleSteals(state, currentId) : [];
   const unopened = unopenedGifts(state);
   const isComplete = state.status === "complete" || state.phase === "complete";
@@ -318,7 +326,7 @@ function GameBoard({
             ? "border-slate-300 bg-slate-50"
             : isFinalTurn
             ? "border-kringle-gold bg-amber-50"
-            : isMyTurn
+            : canAct
             ? "border-kringle-cranberry bg-kringle-cranberry text-white"
             : "border-kringle-spruce bg-kringle-spruce text-white"
         }`}
@@ -360,7 +368,7 @@ function GameBoard({
       {/* Actions — turn actions locked to current player; utility controls open to all */}
       {!isComplete && !isPaused && (
         <div className="space-y-3">
-          {!isMyTurn && !isFinalTurn && (
+          {!canAct && !isFinalTurn && (
             <p className="rounded-2xl bg-slate-50 px-4 py-3 text-center text-sm font-semibold text-slate-500">
               Waiting for {currentName} to act…
             </p>
@@ -370,10 +378,10 @@ function GameBoard({
               <button
                 type="button"
                 onClick={() => act({ type: "final_keep" })}
-                disabled={!isMyTurn}
-                className={`min-h-12 w-full rounded-2xl font-bold text-white disabled:cursor-not-allowed disabled:opacity-40 ${isMyTurn ? "bg-kringle-spruce" : "bg-slate-400"}`}
+                disabled={!canAct}
+                className={`min-h-12 w-full rounded-2xl font-bold text-white disabled:cursor-not-allowed disabled:opacity-40 ${canAct ? "bg-kringle-spruce" : "bg-slate-400"}`}
               >
-                {isMyTurn ? "Keep my gift" : `${currentName} keeps their gift`}
+                {isMyTurn ? "Keep my gift" : `${currentName} — keep their gift`}
               </button>
               {state.gifts
                 .filter(
@@ -387,8 +395,8 @@ function GameBoard({
                     key={g.id}
                     type="button"
                     onClick={() => act({ type: "final_swap", giftId: g.id })}
-                    disabled={!isMyTurn}
-                    className={`min-h-12 w-full rounded-2xl border-2 font-bold disabled:cursor-not-allowed disabled:opacity-40 ${isMyTurn ? "border-kringle-cranberry text-kringle-cranberry hover:bg-kringle-cranberry hover:text-white" : "border-slate-300 text-slate-500"}`}
+                    disabled={!canAct}
+                    className={`min-h-12 w-full rounded-2xl border-2 font-bold disabled:cursor-not-allowed disabled:opacity-40 ${canAct ? "border-kringle-cranberry text-kringle-cranberry hover:bg-kringle-cranberry hover:text-white" : "border-slate-300 text-slate-500"}`}
                   >
                     Swap with {nameById.get(g.ownerId!)}&apos;s Gift #{g.giftNumber}
                   </button>
@@ -402,8 +410,8 @@ function GameBoard({
                   onClick={() =>
                     act({ type: "open", playerId: currentId!, giftId: unopened[0]!.id })
                   }
-                  disabled={!isMyTurn}
-                  className={`min-h-14 w-full rounded-2xl text-lg font-black text-white shadow-[3px_3px_0_rgba(0,0,0,0.12)] disabled:cursor-not-allowed disabled:opacity-40 ${isMyTurn ? "bg-kringle-cranberry" : "bg-slate-400"}`}
+                  disabled={!canAct}
+                  className={`min-h-14 w-full rounded-2xl text-lg font-black text-white shadow-[3px_3px_0_rgba(0,0,0,0.12)] disabled:cursor-not-allowed disabled:opacity-40 ${canAct ? "bg-kringle-cranberry" : "bg-slate-400"}`}
                 >
                   {isMyTurn ? `Open Gift #${unopened[0]!.giftNumber}` : `${currentName} opens Gift #${unopened[0]!.giftNumber}`}
                 </button>
@@ -411,7 +419,7 @@ function GameBoard({
               {steals.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                    {isMyTurn ? "Or steal" : "Or they steal"}
+                    {canAct ? "Or steal" : "Or they steal"}
                   </p>
                   {steals.map((g) => (
                     <button
@@ -420,8 +428,8 @@ function GameBoard({
                       onClick={() =>
                         act({ type: "steal", playerId: currentId!, giftId: g.id })
                       }
-                      disabled={!isMyTurn}
-                      className={`min-h-12 w-full rounded-2xl border-2 font-bold disabled:cursor-not-allowed disabled:opacity-40 ${isMyTurn ? "border-kringle-spruce text-kringle-spruce hover:bg-kringle-spruce hover:text-white" : "border-slate-300 text-slate-500"}`}
+                      disabled={!canAct}
+                      className={`min-h-12 w-full rounded-2xl border-2 font-bold disabled:cursor-not-allowed disabled:opacity-40 ${canAct ? "border-kringle-spruce text-kringle-spruce hover:bg-kringle-spruce hover:text-white" : "border-slate-300 text-slate-500"}`}
                     >
                       Steal Gift #{g.giftNumber} from {nameById.get(g.ownerId!)}
                     </button>

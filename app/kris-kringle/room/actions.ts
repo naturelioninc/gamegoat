@@ -100,6 +100,41 @@ export async function startGame(code: string): Promise<{ ok: boolean; error?: st
   return { ok: true };
 }
 
+export async function addManualPlayers(
+  code: string,
+  names: string[],
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createSupabaseServerClient();
+
+  const { data: room, error } = await supabase
+    .from("game_rooms")
+    .select("players, status")
+    .eq("code", code)
+    .gt("expires_at", new Date().toISOString())
+    .single();
+
+  if (error || !room) return { ok: false, error: "Room not found" };
+  if (room.status !== "lobby") return { ok: false, error: "Game already started" };
+
+  const existing = (room.players as { id: string; name: string }[]) ?? [];
+  const existingLower = new Set(existing.map((p) => p.name.toLowerCase()));
+
+  const newPlayers = names
+    .map((n) => n.trim())
+    .filter((n) => n && !existingLower.has(n.toLowerCase()))
+    .map((name) => ({ id: randomUUID(), name, isHost: false, isManual: true }));
+
+  if (newPlayers.length === 0) return { ok: true };
+
+  const { error: updateError } = await supabase
+    .from("game_rooms")
+    .update({ players: [...existing, ...newPlayers] })
+    .eq("code", code);
+
+  if (updateError) return { ok: false, error: updateError.message };
+  return { ok: true };
+}
+
 export async function performRoomAction(
   code: string,
   action: GameActionInput,
