@@ -109,7 +109,7 @@ function SetupScreen({ onStart }: { onStart: (session: GameSession) => void }) {
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            {m === "local" ? "Play locally" : "Play online"}
+            {m === "local" ? "📱 One device" : "📲 Everyone's phone"}
           </button>
         ))}
       </div>
@@ -119,7 +119,7 @@ function SetupScreen({ onStart }: { onStart: (session: GameSession) => void }) {
         <div className="space-y-6">
           <GeneratedIcon name="join-code" size="md" className="mx-auto h-16 w-16" />
           <p className="text-sm text-slate-600">
-            Create a room — share the code with friends so they can join on their phones.
+            Everyone joins on their own phone — no passing required. Share the QR code or room code and you&apos;re in.
           </p>
 
           <section className="space-y-3">
@@ -220,7 +220,7 @@ function SetupScreen({ onStart }: { onStart: (session: GameSession) => void }) {
       <section className="space-y-4">
         <h2 className="flex items-center gap-2 text-xl font-black"><GeneratedIcon name="players" className="h-8 w-8" /> Players</h2>
         <p className="text-sm text-slate-600">
-          Add one name per gift-bringer. Player order is randomized when you start.
+          Pass one phone around the table. Add everyone&apos;s name and hand it to whoever&apos;s turn it is.
         </p>
         <div className="space-y-2">
           {names.map((name, i) => (
