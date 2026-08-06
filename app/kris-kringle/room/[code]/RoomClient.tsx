@@ -341,8 +341,30 @@ function PhotoSection({ roomCode, isComplete }: { roomCode: string; isComplete: 
   const [photos, setPhotos] = useState<string[]>([]);
   const [fullscreen, setFullscreen] = useState<string | null>(null);
   const [loadingPhotos, setLoadingPhotos] = useState(false);
+  const [copiedGallery, setCopiedGallery] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const supabaseRef = useRef(createSupabaseBrowserClient());
+
+  function shareGallery() {
+    const url =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/kris-kringle/gallery/${roomCode}`
+        : "";
+    if (navigator.share) {
+      navigator
+        .share({
+          title: "Our Kris Kringle party photos 🎁",
+          text: "Check out the photos from our party!",
+          url,
+        })
+        .catch(() => {});
+    } else {
+      navigator.clipboard.writeText(url).then(() => {
+        setCopiedGallery(true);
+        setTimeout(() => setCopiedGallery(false), 2000);
+      });
+    }
+  }
 
   async function loadPhotos() {
     setLoadingPhotos(true);
@@ -445,14 +467,27 @@ function PhotoSection({ roomCode, isComplete }: { roomCode: string; isComplete: 
               No photos yet — tap the button to capture a moment!
             </p>
           )}
-          <button
-            type="button"
-            onClick={loadPhotos}
-            disabled={loadingPhotos}
-            className="min-h-10 w-full rounded-xl border border-slate-200 text-xs font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-40"
-          >
-            {loadingPhotos ? "Loading…" : "↺ Refresh photos"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={loadPhotos}
+              disabled={loadingPhotos}
+              className="min-h-10 flex-1 rounded-xl border border-slate-200 text-xs font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-40"
+            >
+              {loadingPhotos ? "Loading…" : "↺ Refresh"}
+            </button>
+            <button
+              type="button"
+              onClick={shareGallery}
+              className={`min-h-10 flex-1 rounded-xl border-2 text-xs font-bold transition ${
+                copiedGallery
+                  ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                  : "border-kringle-spruce bg-kringle-spruce text-white"
+              }`}
+            >
+              {copiedGallery ? "✓ Copied!" : "📤 Share gallery"}
+            </button>
+          </div>
         </>
       )}
 
