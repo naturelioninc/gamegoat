@@ -14,6 +14,7 @@ import {
 import type { GameState, GameRules, GameActionInput } from "@/lib/engine/types";
 import { RULE_PRESETS } from "@/lib/engine/types";
 import { createRoom } from "@/app/kris-kringle/room/actions";
+import { GeneratedIcon } from "@/components/GeneratedIcon";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -370,8 +371,9 @@ function LiveGame({
                 <button
                   type="button"
                   onClick={() => act({ type: "open", playerId: currentId!, giftId: unopened[0]!.id })}
-                  className="min-h-14 w-full rounded-2xl bg-kringle-cranberry text-lg font-black text-white shadow-[3px_3px_0_rgba(0,0,0,0.12)]"
+                  className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-kringle-cranberry text-lg font-black text-white shadow-[3px_3px_0_rgba(0,0,0,0.12)]"
                 >
+                  <GeneratedIcon name="open-gift" className="h-8 w-8" />
                   Open Gift #{unopened[0]!.giftNumber}
                 </button>
               )}
@@ -383,8 +385,9 @@ function LiveGame({
                       key={g.id}
                       type="button"
                       onClick={() => act({ type: "steal", playerId: currentId!, giftId: g.id })}
-                      className="min-h-12 w-full rounded-2xl border-2 border-kringle-spruce font-bold text-kringle-spruce hover:bg-kringle-spruce hover:text-white"
+                      className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border-2 border-kringle-spruce font-bold text-kringle-spruce hover:bg-kringle-spruce hover:text-white"
                     >
+                      <GeneratedIcon name="steal-gift" className="h-7 w-7" />
                       Steal Gift #{g.giftNumber} from {nameById.get(g.ownerId!)}
                     </button>
                   ))}
@@ -442,7 +445,9 @@ function LiveGame({
                     <p className="mt-0.5 font-semibold">{owner}</p>
                     {gift.stealCount > 0 && (
                       <p className="text-xs text-slate-500">
-                        {locked ? "🔒 locked" : `Stolen ${gift.stealCount}×`}
+                        {locked ? (
+                          <span className="inline-flex items-center gap-1"><GeneratedIcon name="locked-gift" className="h-5 w-5" /> locked</span>
+                        ) : `Stolen ${gift.stealCount}×`}
                       </p>
                     )}
                   </>

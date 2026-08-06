@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import { CHRISTMAS_CHARADES, nextCharadesIndex } from "@/lib/games/christmas-charades";
+import { GeneratedIcon } from "@/components/GeneratedIcon";
 
 const ROUND_SECONDS = 60;
 
@@ -49,9 +50,10 @@ export function ChristmasCharadesGame() {
             <h2 className="mt-1 text-2xl font-bold">Act it out — no words or sounds</h2>
           </div>
           <div
-            className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-2xl font-black ${seconds <= 10 && running ? "bg-kringle-cranberry text-white" : "bg-white text-slate-900"}`}
+            className={`relative flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-2xl font-black ${seconds <= 10 && running ? "bg-kringle-cranberry text-white" : "bg-white text-slate-900"}`}
             aria-label={`${seconds} seconds remaining`}
           >
+            <GeneratedIcon name="timer" className="absolute -left-4 -top-4 h-8 w-8" />
             {seconds}
           </div>
         </div>

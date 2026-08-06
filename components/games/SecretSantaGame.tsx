@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { draw } from "@/lib/matching/draw";
 import type { Assignment } from "@/lib/matching/draw";
+import { GeneratedIcon } from "@/components/GeneratedIcon";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -182,6 +183,7 @@ function RevealScreen({
       ) : (
         <>
           <div className="rounded-3xl bg-kringle-spruce p-8 text-center text-white">
+            <GeneratedIcon name="pass-phone" size="md" className="mx-auto mb-3 h-16 w-16" />
             <p className="text-sm font-bold uppercase tracking-[0.16em] text-white/70">
               Pass the phone to
             </p>
@@ -192,8 +194,9 @@ function RevealScreen({
             <button
               type="button"
               onClick={() => setRevealed(true)}
-              className="min-h-14 w-full rounded-2xl border-4 border-dashed border-kringle-cranberry text-lg font-black text-kringle-cranberry"
+              className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border-4 border-dashed border-kringle-cranberry text-lg font-black text-kringle-cranberry"
             >
+              <GeneratedIcon name="reveal-match" className="h-8 w-8" />
               Tap to reveal your match
             </button>
           ) : (
@@ -211,8 +214,9 @@ function RevealScreen({
                   setRevealed(false);
                   setRevealIndex((i) => i + 1);
                 }}
-                className="min-h-14 w-full rounded-2xl bg-kringle-cranberry text-lg font-black text-white"
+                className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-kringle-cranberry text-lg font-black text-white"
               >
+                <GeneratedIcon name="pass-phone" className="h-8 w-8" />
                 Done — pass to next person
               </button>
             </div>
