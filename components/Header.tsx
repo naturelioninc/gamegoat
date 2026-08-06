@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { MAIN_GAMES, WARMUP_GAMES } from "@/lib/games";
 import {
   GeneratedIcon,
@@ -62,6 +63,14 @@ export function Header({ menuOpen, onMenuToggle, onPlayClick }: Props) {
   const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const [authed, setAuthed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    supabase.auth.getSession().then(({ data }) => setAuthed(!!data.session));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => setAuthed(!!session));
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Close menu on navigation
   useEffect(() => {
@@ -142,15 +151,34 @@ export function Header({ menuOpen, onMenuToggle, onPlayClick }: Props) {
           />
         </Link>
 
-        {/* Play button → game picker */}
-        <button
-          type="button"
-          onClick={onPlayClick}
-          className="inline-flex min-h-11 items-center gap-1.5 rounded-full border-2 border-black bg-kringle-cranberry px-3 text-xs font-extrabold uppercase tracking-wide text-white shadow-[2px_2px_0_#000] transition hover:-translate-y-0.5 sm:px-5 sm:text-sm"
-        >
-          <GeneratedIcon name="play" size="sm" className="h-6 w-6" />
-          <span>Play</span>
-        </button>
+        {/* Right side: Account + Play */}
+        <div className="flex items-center gap-2">
+          {authed !== null && (
+            authed ? (
+              <Link
+                href="/account"
+                className="hidden sm:inline-flex min-h-11 items-center gap-1.5 rounded-full border-2 border-black px-3 text-xs font-extrabold uppercase tracking-wide shadow-[2px_2px_0_#000] transition hover:-translate-y-0.5"
+              >
+                My account
+              </Link>
+            ) : (
+              <a
+                href="https://account.xmasgoat.com"
+                className="hidden sm:inline-flex min-h-11 items-center gap-1.5 rounded-full border-2 border-black px-3 text-xs font-extrabold uppercase tracking-wide shadow-[2px_2px_0_#000] transition hover:-translate-y-0.5"
+              >
+                Sign in
+              </a>
+            )
+          )}
+          <button
+            type="button"
+            onClick={onPlayClick}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full border-2 border-black bg-kringle-cranberry px-3 text-xs font-extrabold uppercase tracking-wide text-white shadow-[2px_2px_0_#000] transition hover:-translate-y-0.5 sm:px-5 sm:text-sm"
+          >
+            <GeneratedIcon name="play" size="sm" className="h-6 w-6" />
+            <span>Play</span>
+          </button>
+        </div>
 
         {/* Dropdown menu */}
         {menuOpen && (

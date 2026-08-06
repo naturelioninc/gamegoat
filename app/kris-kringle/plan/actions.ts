@@ -47,6 +47,7 @@ export async function createExchange(
   rules?: Partial<ExchangeRules>,
 ): Promise<{ id: string }> {
   const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   const finalRules: ExchangeRules = {
     maxSteals: rules?.maxSteals ?? 3,
@@ -63,6 +64,7 @@ export async function createExchange(
       party_date: partyDate || null,
       budget_cents: budgetCents ?? null,
       rules: finalRules,
+      user_id: user?.id ?? null,
     })
     .select("id")
     .single();
