@@ -1,6 +1,6 @@
 create table if not exists exchange_participants (
   id uuid primary key default gen_random_uuid(),
-  exchange_id uuid not null references exchanges(id) on delete cascade,
+  exchange_id uuid not null references gift_exchanges(id) on delete cascade,
   name text not null,
   email text not null,
   wish_list jsonb not null default '[]'::jsonb,

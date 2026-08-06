@@ -55,7 +55,7 @@ export async function createExchange(
   };
 
   const { data: exchange, error } = await supabase
-    .from("exchanges")
+    .from("gift_exchanges")
     .insert({
       host_name: hostName.trim(),
       host_email: hostEmail.trim().toLowerCase(),
@@ -83,7 +83,7 @@ export async function getExchange(id: string): Promise<Exchange | null> {
   const supabase = await createSupabaseServerClient();
 
   const { data: exchange, error } = await supabase
-    .from("exchanges")
+    .from("gift_exchanges")
     .select("*")
     .eq("id", id)
     .single();
@@ -111,7 +111,7 @@ export async function joinExchange(
   const supabase = await createSupabaseServerClient();
 
   const { data: exchange } = await supabase
-    .from("exchanges")
+    .from("gift_exchanges")
     .select("id, name, status")
     .eq("id", exchangeId)
     .single();
@@ -168,7 +168,7 @@ export async function drawSecretSanta(
   const supabase = await createSupabaseServerClient();
 
   const { data: exchange } = await supabase
-    .from("exchanges")
+    .from("gift_exchanges")
     .select("*, participants:exchange_participants(*)")
     .eq("id", exchangeId)
     .single();
@@ -201,7 +201,7 @@ export async function drawSecretSanta(
   }
 
   await supabase
-    .from("exchanges")
+    .from("gift_exchanges")
     .update({ secret_santa_drawn: true })
     .eq("id", exchangeId);
 
@@ -248,7 +248,7 @@ export async function launchGame(
   const supabase = await createSupabaseServerClient();
 
   const { data: exchange } = await supabase
-    .from("exchanges")
+    .from("gift_exchanges")
     .select("host_name, host_email, rules")
     .eq("id", exchangeId)
     .single();
@@ -304,7 +304,7 @@ export async function launchGame(
       .eq("code", code);
   }
 
-  await supabase.from("exchanges").update({ status: "active" }).eq("id", exchangeId);
+  await supabase.from("gift_exchanges").update({ status: "active" }).eq("id", exchangeId);
 
   return { code };
 }
