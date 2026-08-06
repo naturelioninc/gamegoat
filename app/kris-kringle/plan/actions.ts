@@ -276,7 +276,7 @@ export async function launchGame(
 
   const { data: participants } = await supabase
     .from("exchange_participants")
-    .select("id, name, email")
+    .select("id, name, email, wish_list")
     .eq("exchange_id", exchangeId)
     .order("joined_at", { ascending: true });
 
@@ -302,16 +302,22 @@ export async function launchGame(
   const hostPlayer = (room?.players as Array<{ id: string; name: string; isHost: boolean }>)?.[0];
   if (!hostPlayer) return { ok: false, error: "Room creation failed" };
 
+  const hostParticipant = participants.find(
+    (p) => p.name.toLowerCase() === exchange.host_name.toLowerCase(),
+  );
+  const hostPlayerFull = {
+    ...hostPlayer,
+    wishList: hostParticipant?.wish_list ?? [],
+  };
+
   const extraPlayers = participants
     .filter((p) => p.name.toLowerCase() !== exchange.host_name.toLowerCase())
-    .map((p) => ({ id: p.id, name: p.name, isHost: false }));
+    .map((p) => ({ id: p.id, name: p.name, isHost: false, wishList: p.wish_list ?? [] }));
 
-  if (extraPlayers.length > 0) {
-    await sb2
-      .from("game_rooms")
-      .update({ players: [hostPlayer, ...extraPlayers] })
-      .eq("code", code);
-  }
+  await sb2
+    .from("game_rooms")
+    .update({ players: [hostPlayerFull, ...extraPlayers] })
+    .eq("code", code);
 
   await supabase.from("gift_exchanges").update({ status: "active" }).eq("id", exchangeId);
 
