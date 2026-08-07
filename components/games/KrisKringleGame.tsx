@@ -36,15 +36,15 @@ export function KrisKringleGame() {
     setError("");
     startTransition(async () => {
       try {
-        const { code, playerId } = await createRoom(hostName.trim(), preset);
+        const { code, playerId, playerToken } = await createRoom(hostName.trim(), preset);
         try {
           localStorage.setItem(
             `kk_player_${code}`,
-            JSON.stringify({ playerId, playerName: hostName.trim() }),
+            JSON.stringify({ playerId, playerName: hostName.trim(), playerToken }),
           );
         } catch {}
         if (extraNames.length > 0) {
-          await addManualPlayers(code, extraNames, playerId);
+          await addManualPlayers(code, extraNames, playerId, playerToken);
         }
         router.push(`/kris-kringle/room/${code}`);
       } catch (e: unknown) {

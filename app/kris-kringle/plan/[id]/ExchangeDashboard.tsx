@@ -232,7 +232,7 @@ export function ExchangeDashboard({ exchange: initial }: { exchange: Exchange })
       } else if ("code" in result) {
         localStorage.setItem(
           `kk_player_${result.code}`,
-          JSON.stringify({ playerId: result.playerId, playerName: result.playerName }),
+          JSON.stringify({ playerId: result.playerId, playerName: result.playerName, playerToken: result.playerToken }),
         );
         router.push(`/kris-kringle/room/${result.code}`);
       }

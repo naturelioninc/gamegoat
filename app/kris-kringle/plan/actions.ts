@@ -347,7 +347,7 @@ export async function drawSecretSanta(
 
 export async function launchGame(
   exchangeId: string,
-): Promise<{ code: string; playerId: string; playerName: string } | { ok: false; error: string }> {
+): Promise<{ code: string; playerId: string; playerToken: string; playerName: string } | { ok: false; error: string }> {
   const supabase = createSupabaseServiceClient();
   if (!(await hostOwnsExchange(exchangeId))) return { ok: false, error: "Host access required" };
 
@@ -385,7 +385,7 @@ export async function launchGame(
     return { ok: false, error: "Need at least 2 participants" };
   }
 
-  const { code, playerId } = await createRoom(
+  const { code, playerId, playerToken } = await createRoom(
     exchange.host_name,
     presetName,
     exchange.host_email,
@@ -431,5 +431,5 @@ export async function launchGame(
     .update({ status: "active" })
     .eq("id", exchangeId);
 
-  return { code, playerId, playerName: exchange.host_name };
+  return { code, playerId, playerToken, playerName: exchange.host_name };
 }

@@ -8,15 +8,37 @@ import {
 } from "@/lib/engine/engine";
 import { RULE_PRESETS } from "@/lib/engine/types";
 import type { GameActionInput } from "@/lib/engine/types";
-import { randomUUID } from "crypto";
+import { createHash, randomBytes, randomUUID } from "crypto";
+
+function newPlayerToken() {
+  return randomBytes(32).toString("base64url");
+}
+
+function hashPlayerToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+async function hasPlayerSession(roomId: string, playerId: string, playerToken: string) {
+  if (!playerToken) return false;
+  const supabase = createSupabaseServiceClient();
+  const { data } = await supabase
+    .from("game_room_player_sessions")
+    .select("player_id")
+    .eq("room_id", roomId)
+    .eq("player_id", playerId)
+    .eq("token_hash", hashPlayerToken(playerToken))
+    .maybeSingle();
+  return Boolean(data);
+}
 
 export async function createRoom(
   hostName: string,
   preset: string = "classic",
   hostEmail: string = "",
-): Promise<{ code: string; playerId: string }> {
+): Promise<{ code: string; playerId: string; playerToken: string }> {
   const supabase = createSupabaseServiceClient();
   const playerId = randomUUID();
+  const playerToken = newPlayerToken();
   const rules =
     RULE_PRESETS[preset as keyof typeof RULE_PRESETS] ?? RULE_PRESETS.classic;
 
@@ -29,40 +51,47 @@ export async function createRoom(
       host_email: hostEmail.trim() || null,
       status: "lobby",
     })
-    .select("code")
+    .select("id, code")
     .single();
 
   if (error || !data)
     throw new Error(error?.message ?? "Could not create room");
-  return { code: data.code, playerId };
+  const { error: sessionError } = await supabase
+    .from("game_room_player_sessions")
+    .insert({ room_id: data.id, player_id: playerId, token_hash: hashPlayerToken(playerToken) });
+  if (sessionError) throw new Error("Could not secure host session");
+  return { code: data.code, playerId, playerToken };
 }
 
 export async function joinRoom(
   code: string,
   playerName: string,
-): Promise<{ ok: true; playerId: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; playerId: string; playerToken: string } | { ok: false; error: string }> {
   const trimmed = playerName.trim();
   if (!trimmed) return { ok: false, error: "Name required" };
   const playerId = randomUUID();
+  const playerToken = newPlayerToken();
   const supabase = createSupabaseServiceClient();
   const { error } = await supabase.rpc("join_game_room", {
     _code: code,
     _player_id: playerId,
     _player_name: trimmed,
+    _token_hash: hashPlayerToken(playerToken),
   });
   if (error) return { ok: false, error: error.message.replace(/^.*?: /, "") };
-  return { ok: true, playerId };
+  return { ok: true, playerId, playerToken };
 }
 
 export async function startGame(
   code: string,
   actorPlayerId: string,
+  playerToken: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const supabase = createSupabaseServiceClient();
 
   const { data: room, error } = await supabase
     .from("game_rooms")
-    .select("players, rules, status")
+    .select("id, players, rules, status")
     .eq("code", code)
     .gt("expires_at", new Date().toISOString())
     .single();
@@ -70,6 +99,8 @@ export async function startGame(
   if (error || !room) return { ok: false, error: "Room not found or expired" };
   if (room.status !== "lobby")
     return { ok: false, error: "Game already started" };
+  if (!(await hasPlayerSession(room.id, actorPlayerId, playerToken)))
+    return { ok: false, error: "Your player session is no longer valid" };
 
   const players = (room.players as { id: string; name: string }[]) ?? [];
   const actor = players.find((player) => player.id === actorPlayerId) as
@@ -106,12 +137,13 @@ export async function addManualPlayers(
   code: string,
   names: string[],
   actorPlayerId: string,
+  playerToken: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const supabase = createSupabaseServiceClient();
 
   const { data: room, error } = await supabase
     .from("game_rooms")
-    .select("players, status")
+    .select("id, players, status")
     .eq("code", code)
     .gt("expires_at", new Date().toISOString())
     .single();
@@ -119,6 +151,8 @@ export async function addManualPlayers(
   if (error || !room) return { ok: false, error: "Room not found" };
   if (room.status !== "lobby")
     return { ok: false, error: "Game already started" };
+  if (!(await hasPlayerSession(room.id, actorPlayerId, playerToken)))
+    return { ok: false, error: "Your player session is no longer valid" };
 
   const existing = (room.players as { id: string; name: string }[]) ?? [];
   const actor = (room.players as Array<{ id: string; isHost?: boolean }>).find(
@@ -148,6 +182,7 @@ export async function performRoomAction(
   code: string,
   action: GameActionInput,
   actorPlayerId: string,
+  playerToken: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const supabase = createSupabaseServiceClient();
 
@@ -156,13 +191,15 @@ export async function performRoomAction(
   for (let attempt = 0; attempt < 3; attempt++) {
     const { data: room, error } = await supabase
       .from("game_rooms")
-      .select("state, updated_at, players")
+      .select("id, state, updated_at, players")
       .eq("code", code)
       .gt("expires_at", new Date().toISOString())
       .single();
 
     if (error || !room?.state)
       return { ok: false, error: "Room not found or expired" };
+    if (!(await hasPlayerSession(room.id, actorPlayerId, playerToken)))
+      return { ok: false, error: "Your player session is no longer valid" };
 
     const players = room.players as Array<{
       id: string;

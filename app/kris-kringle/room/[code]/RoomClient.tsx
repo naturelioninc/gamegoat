@@ -46,7 +46,7 @@ interface GameRoom {
 
 function getStoredPlayer(
   code: string,
-): { playerId: string; playerName: string } | null {
+): { playerId: string; playerName: string; playerToken?: string } | null {
   try {
     const raw = localStorage.getItem(`kk_player_${code}`);
     return raw ? JSON.parse(raw) : null;
@@ -55,11 +55,11 @@ function getStoredPlayer(
   }
 }
 
-function storePlayer(code: string, playerId: string, playerName: string) {
+function storePlayer(code: string, playerId: string, playerName: string, playerToken: string) {
   try {
     localStorage.setItem(
       `kk_player_${code}`,
-      JSON.stringify({ playerId, playerName }),
+      JSON.stringify({ playerId, playerName, playerToken }),
     );
   } catch {}
 }
@@ -157,6 +157,7 @@ function LobbyView({
   }
 
   const isInRoom = myPlayerId && room.players.some((p) => p.id === myPlayerId);
+  const isHost = Boolean(myPlayerId && room.players.some((p) => p.id === myPlayerId && p.isHost));
   const canStart = room.players.length >= 2;
 
   return (
@@ -301,7 +302,7 @@ function LobbyView({
       )}
 
       {/* Start game (shown when in room and enough players) */}
-      {isInRoom && (
+      {isHost && (
         <div className="space-y-2">
           <button
             type="button"
@@ -321,6 +322,11 @@ function LobbyView({
             </p>
           )}
         </div>
+      )}
+      {isInRoom && !isHost && (
+        <p className="rounded-2xl bg-slate-50 px-4 py-3 text-center text-sm font-semibold text-slate-600">
+          You&apos;re connected. The host will start when everyone is ready.
+        </p>
       )}
     </div>
   );
@@ -1176,12 +1182,18 @@ function GameBoard({
 export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
   const [room, setRoom] = useState<GameRoom>(initialRoom);
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
+  const [myPlayerToken, setMyPlayerToken] = useState<string | null>(null);
+  const [sessionError, setSessionError] = useState("");
   const supabaseRef = useRef(createSupabaseBrowserClient());
 
   // Load player identity from localStorage
   useEffect(() => {
     const stored = getStoredPlayer(room.code);
-    if (stored) setMyPlayerId(stored.playerId);
+    if (stored) {
+      setMyPlayerId(stored.playerId);
+      setMyPlayerToken(stored.playerToken ?? null);
+      if (!stored.playerToken) setSessionError("This room was created before secure reconnects were enabled. Rejoin with a new name if the game has not started.");
+    }
   }, [room.code]);
 
   // Subscribe to Realtime changes
@@ -1211,19 +1223,23 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
   async function handleJoin(playerName: string) {
     const result = await joinRoom(room.code, playerName);
     if (!result.ok) throw new Error(result.error);
-    storePlayer(room.code, result.playerId, playerName);
+    storePlayer(room.code, result.playerId, playerName, result.playerToken);
     setMyPlayerId(result.playerId);
+    setMyPlayerToken(result.playerToken);
+    setSessionError("");
   }
 
   async function handleStart() {
-    if (!myPlayerId) throw new Error("Join the room first");
-    const result = await startGame(room.code, myPlayerId);
+    if (!myPlayerId || !myPlayerToken) throw new Error("Join the room first");
+    const result = await startGame(room.code, myPlayerId, myPlayerToken);
     if (!result.ok) throw new Error(result.error);
   }
 
   function handleAction(action: GameActionInput) {
-    if (!myPlayerId) return;
-    performRoomAction(room.code, action, myPlayerId).catch(console.error);
+    if (!myPlayerId || !myPlayerToken) return;
+    performRoomAction(room.code, action, myPlayerId, myPlayerToken).then((result) => {
+      if (!result.ok) setSessionError(result.error ?? "Could not update the game");
+    }).catch(() => setSessionError("Connection interrupted — please try again"));
   }
 
   const isHostDevice =
@@ -1231,6 +1247,11 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
 
   return (
     <div className="rounded-3xl border-2 border-black bg-white p-6 shadow-[4px_4px_0_#000] sm:p-8">
+      {sessionError && (
+        <p role="alert" className="mb-5 rounded-2xl border-2 border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+          {sessionError}
+        </p>
+      )}
       {room.status === "lobby" ? (
         <LobbyView
           room={room}
