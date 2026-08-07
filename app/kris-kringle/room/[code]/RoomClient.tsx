@@ -40,6 +40,8 @@ interface GameRoom {
   rules: Record<string, unknown>;
 }
 
+type ConnectionState = "connecting" | "connected" | "reconnecting" | "offline";
+
 // ---------------------------------------------------------------------------
 // Storage helpers (identify this device's player in the room)
 // ---------------------------------------------------------------------------
@@ -256,7 +258,8 @@ function LobbyView({
                 }`}
               >
                 <span
-                  className={`h-2 w-2 flex-shrink-0 rounded-full ${p.isManual ? "bg-slate-300" : "bg-emerald-400"}`}
+                  className={`h-2 w-2 flex-shrink-0 rounded-full ${p.isManual ? "bg-slate-300" : "bg-sky-400"}`}
+                  title={p.isManual ? "Added by host" : "Joined by phone"}
                 />
                 {p.name}
                 {p.isHost && (
@@ -1185,6 +1188,9 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
   const [myPlayerToken, setMyPlayerToken] = useState<string | null>(null);
   const [sessionError, setSessionError] = useState("");
   const [recoveringHost, setRecoveringHost] = useState(false);
+  const [connectionState, setConnectionState] = useState<ConnectionState>(
+    typeof navigator !== "undefined" && !navigator.onLine ? "offline" : "connecting",
+  );
   const supabaseRef = useRef(createSupabaseBrowserClient());
 
   // Load player identity from localStorage
@@ -1200,6 +1206,38 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
   // Subscribe to Realtime changes
   useEffect(() => {
     const supabase = supabaseRef.current;
+    let active = true;
+
+    async function refreshRoom() {
+      if (!navigator.onLine) {
+        if (active) setConnectionState("offline");
+        return;
+      }
+      const { data } = await supabase
+        .from("game_rooms")
+        .select("*")
+        .eq("code", room.code)
+        .gt("expires_at", new Date().toISOString())
+        .maybeSingle();
+      if (active && data) setRoom(data as GameRoom);
+    }
+
+    function handleOnline() {
+      setConnectionState("reconnecting");
+      void refreshRoom();
+    }
+
+    function handleOffline() {
+      setConnectionState("offline");
+    }
+
+    function handleVisibility() {
+      if (document.visibilityState === "visible") {
+        setConnectionState((current) => current === "offline" ? current : "reconnecting");
+        void refreshRoom();
+      }
+    }
+
     const channel = supabase
       .channel(`room:${room.code}`)
       .on(
@@ -1212,16 +1250,40 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
         },
         (payload) => {
           setRoom(payload.new as GameRoom);
+          setConnectionState("connected");
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (!active) return;
+        if (status === "SUBSCRIBED") {
+          setConnectionState("connected");
+          void refreshRoom();
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          setConnectionState(navigator.onLine ? "reconnecting" : "offline");
+        } else if (status === "CLOSED") {
+          setConnectionState(navigator.onLine ? "reconnecting" : "offline");
+        }
+      });
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    document.addEventListener("visibilitychange", handleVisibility);
+    const fallbackPoll = window.setInterval(() => {
+      if (document.visibilityState === "visible") void refreshRoom();
+    }, 15_000);
 
     return () => {
+      active = false;
+      window.clearInterval(fallbackPoll);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      document.removeEventListener("visibilitychange", handleVisibility);
       supabase.removeChannel(channel);
     };
   }, [room.code]);
 
   async function handleJoin(playerName: string) {
+    if (connectionState === "offline") throw new Error("You're offline — reconnect before joining");
     const result = await joinRoom(room.code, playerName);
     if (!result.ok) throw new Error(result.error);
     storePlayer(room.code, result.playerId, playerName, result.playerToken);
@@ -1231,19 +1293,29 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
   }
 
   async function handleStart() {
+    if (connectionState === "offline") throw new Error("You're offline — reconnect before starting");
     if (!myPlayerId || !myPlayerToken) throw new Error("Join the room first");
     const result = await startGame(room.code, myPlayerId, myPlayerToken);
     if (!result.ok) throw new Error(result.error);
   }
 
   function handleAction(action: GameActionInput) {
+    if (connectionState === "offline") {
+      setSessionError("You're offline — reconnect before making a move");
+      return;
+    }
     if (!myPlayerId || !myPlayerToken) return;
+    setSessionError("");
     performRoomAction(room.code, action, myPlayerId, myPlayerToken).then((result) => {
       if (!result.ok) setSessionError(result.error ?? "Could not update the game");
     }).catch(() => setSessionError("Connection interrupted — please try again"));
   }
 
   async function handleRecoverHost() {
+    if (connectionState === "offline") {
+      setSessionError("You're offline — reconnect before recovering controls");
+      return;
+    }
     setRecoveringHost(true);
     setSessionError("");
     try {
@@ -1271,6 +1343,34 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
 
   return (
     <div className="rounded-3xl border-2 border-black bg-white p-6 shadow-[4px_4px_0_#000] sm:p-8">
+      <div className="mb-4 flex justify-end" aria-live="polite">
+        <span
+          className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold ${
+            connectionState === "connected"
+              ? "bg-emerald-50 text-emerald-700"
+              : connectionState === "offline"
+                ? "bg-red-50 text-red-700"
+                : "bg-amber-50 text-amber-800"
+          }`}
+        >
+          <span
+            className={`h-2 w-2 rounded-full ${
+              connectionState === "connected"
+                ? "bg-emerald-500"
+                : connectionState === "offline"
+                  ? "bg-red-500"
+                  : "animate-pulse bg-amber-500"
+            }`}
+          />
+          {connectionState === "connected"
+            ? "Live"
+            : connectionState === "offline"
+              ? "Offline — actions paused"
+              : connectionState === "reconnecting"
+                ? "Reconnecting…"
+                : "Connecting…"}
+        </span>
+      </div>
       {sessionError && (
         <p role="alert" className="mb-5 rounded-2xl border-2 border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
           {sessionError}
