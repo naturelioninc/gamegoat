@@ -5,6 +5,7 @@ import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/sender";
 import { secretSantaEmail } from "@/lib/email/templates";
 import { createRoom } from "@/app/kris-kringle/room/actions";
+import { draw } from "@/lib/matching/draw";
 import { createHash, randomBytes, randomUUID } from "crypto";
 import type { WishListItem } from "@/lib/email/templates";
 
@@ -288,15 +289,11 @@ export async function drawSecretSanta(
     return { ok: false, error: "Need at least 2 participants" };
   }
 
-  const shuffled = [...participants];
-  for (let i = shuffled.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
-  }
-
-  const updates = shuffled.map((p, i) => ({
-    id: p.id,
-    secret_santa_for: shuffled[(i + 1) % shuffled.length]!.id,
+  const drawResult = draw(participants.map((participant) => participant.id));
+  if (!drawResult.ok) return { ok: false, error: drawResult.reason };
+  const updates = drawResult.assignments.map((assignment) => ({
+    id: assignment.giverId,
+    secret_santa_for: assignment.recipientId,
   }));
 
   for (const update of updates) {
@@ -325,7 +322,7 @@ export async function drawSecretSanta(
       })
     : undefined;
 
-  const participantMap = new Map(shuffled.map((p) => [p.id, p]));
+  const participantMap = new Map(participants.map((p) => [p.id, p]));
 
   for (const update of updates) {
     const giver = participantMap.get(update.id);
