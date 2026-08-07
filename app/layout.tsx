@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { AppShell } from "@/components/AppShell";
 import { Footer } from "@/components/Footer";
+import { NativeBridge } from "@/components/NativeBridge";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en-CA">
       <body className="kk-frost-bg flex min-h-screen flex-col bg-[#fffdf7] text-slate-950 antialiased">
+        <NativeBridge />
         <AppShell>{children}</AppShell>
         <Footer />
       </body>
