@@ -20,3 +20,8 @@ next-env.d.ts
 # misc
 .DS_Store
 *.pem
+
+# local Android release artifacts and signing exports
+releases/*.apk
+releases/*.aab
+releases/*.pem
