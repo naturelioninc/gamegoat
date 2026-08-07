@@ -17,7 +17,8 @@ export function KrisKringleGame() {
   const router = useRouter();
 
   const allNames = [hostName.trim(), ...extraNames].filter(Boolean);
-  const hasDuplicates = new Set(allNames.map((n) => n.toLowerCase())).size < allNames.length;
+  const hasDuplicates =
+    new Set(allNames.map((n) => n.toLowerCase())).size < allNames.length;
 
   function addExtra() {
     const trimmed = newName.trim();
@@ -43,7 +44,7 @@ export function KrisKringleGame() {
           );
         } catch {}
         if (extraNames.length > 0) {
-          await addManualPlayers(code, extraNames);
+          await addManualPlayers(code, extraNames, playerId);
         }
         router.push(`/kris-kringle/room/${code}`);
       } catch (e: unknown) {
@@ -59,7 +60,8 @@ export function KrisKringleGame() {
         <p className="font-bold text-kringle-spruce">One room, every phone.</p>
         <p className="mt-1 text-sm text-kringle-spruce/80">
           Add names for people without phones, then share the QR code so
-          everyone else can join on their own device. No mode to pick — it just works.
+          everyone else can join on their own device. No mode to pick — it just
+          works.
         </p>
       </div>
 
@@ -76,7 +78,8 @@ export function KrisKringleGame() {
           maxLength={30}
           className="min-h-12 w-full rounded-2xl border-2 border-slate-200 px-4 font-semibold focus:border-kringle-spruce focus:outline-none"
           onKeyDown={(e) => {
-            if (e.key === "Enter") document.getElementById("add-player-input")?.focus();
+            if (e.key === "Enter")
+              document.getElementById("add-player-input")?.focus();
           }}
         />
       </section>
@@ -85,7 +88,8 @@ export function KrisKringleGame() {
       <section className="space-y-3">
         <h2 className="text-xl font-black">Other players</h2>
         <p className="text-sm text-slate-500">
-          No phone? Add their name — you control their turns. Got a phone? They scan the QR in the lobby.
+          No phone? Add their name — you control their turns. Got a phone? They
+          scan the QR in the lobby.
         </p>
 
         {extraNames.length > 0 && (
@@ -132,7 +136,9 @@ export function KrisKringleGame() {
         </div>
 
         {hasDuplicates && (
-          <p className="text-sm font-semibold text-red-600">Each player needs a unique name.</p>
+          <p className="text-sm font-semibold text-red-600">
+            Each player needs a unique name.
+          </p>
         )}
       </section>
 
@@ -140,35 +146,44 @@ export function KrisKringleGame() {
       <section className="space-y-3">
         <h2 className="text-xl font-black">Rules</h2>
         <div className="grid gap-3">
-          {(Object.entries(RULE_PRESETS) as [keyof typeof RULE_PRESETS, GameRules][]).map(
-            ([key, rules]) => (
-              <label
-                key={key}
-                className={`flex cursor-pointer items-start gap-3 rounded-2xl border-2 p-4 transition ${
-                  preset === key
-                    ? "border-kringle-spruce bg-kringle-spruce/5"
-                    : "border-slate-200 hover:border-slate-300"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="preset"
-                  value={key}
-                  checked={preset === key}
-                  onChange={() => setPreset(key)}
-                  className="mt-0.5"
-                />
-                <div>
-                  <p className="font-black capitalize">{key}</p>
-                  <p className="mt-0.5 text-sm text-slate-600">
-                    Max {rules.maxSteals} steal{rules.maxSteals !== 1 ? "s" : ""} ·{" "}
-                    {rules.allowImmediateStealback ? "Steal-back allowed" : "No immediate steal-back"} ·{" "}
-                    {rules.firstPlayerFinalTurn ? "Player #1 gets a final turn" : "No final turn"}
-                  </p>
-                </div>
-              </label>
-            ),
-          )}
+          {(
+            Object.entries(RULE_PRESETS) as [
+              keyof typeof RULE_PRESETS,
+              GameRules,
+            ][]
+          ).map(([key, rules]) => (
+            <label
+              key={key}
+              className={`flex cursor-pointer items-start gap-3 rounded-2xl border-2 p-4 transition ${
+                preset === key
+                  ? "border-kringle-spruce bg-kringle-spruce/5"
+                  : "border-slate-200 hover:border-slate-300"
+              }`}
+            >
+              <input
+                type="radio"
+                name="preset"
+                value={key}
+                checked={preset === key}
+                onChange={() => setPreset(key)}
+                className="mt-0.5"
+              />
+              <div>
+                <p className="font-black capitalize">{key}</p>
+                <p className="mt-0.5 text-sm text-slate-600">
+                  Max {rules.maxSteals} steal{rules.maxSteals !== 1 ? "s" : ""}{" "}
+                  ·{" "}
+                  {rules.allowImmediateStealback
+                    ? "Steal-back allowed"
+                    : "No immediate steal-back"}{" "}
+                  ·{" "}
+                  {rules.firstPlayerFinalTurn
+                    ? "Player #1 gets a final turn"
+                    : "No final turn"}
+                </p>
+              </div>
+            </label>
+          ))}
         </div>
       </section>
 
@@ -184,20 +199,26 @@ export function KrisKringleGame() {
         {pending
           ? "Setting up…"
           : allNames.length >= 2
-          ? `Create room (${allNames.length} players)`
-          : "Create room"}
+            ? `Create room (${allNames.length} players)`
+            : "Create room"}
       </button>
 
       <div className="space-y-2 border-t border-slate-100 pt-4 text-center text-sm text-slate-500">
         <p>
           Got a room code?{" "}
-          <a href="/kris-kringle/join" className="font-semibold text-kringle-spruce underline">
+          <a
+            href="/kris-kringle/join"
+            className="font-semibold text-kringle-spruce underline"
+          >
             Join a room
           </a>
         </p>
         <p>
           Planning ahead?{" "}
-          <a href="/kris-kringle/plan" className="font-semibold text-kringle-spruce underline">
+          <a
+            href="/kris-kringle/plan"
+            className="font-semibold text-kringle-spruce underline"
+          >
             Set up an exchange →
           </a>
         </p>

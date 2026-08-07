@@ -1,6 +1,7 @@
 "use server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/sender";
 import { secretSantaEmail } from "@/lib/email/templates";
 import { createRoom } from "@/app/kris-kringle/room/actions";
@@ -46,8 +47,11 @@ export async function createExchange(
   budgetCents?: number,
   rules?: Partial<ExchangeRules>,
 ): Promise<{ id: string }> {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const authClient = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await authClient.auth.getUser();
+  const supabase = createSupabaseServiceClient();
 
   const finalRules: ExchangeRules = {
     maxSteals: rules?.maxSteals ?? 3,
@@ -69,7 +73,8 @@ export async function createExchange(
     .select("id")
     .single();
 
-  if (error || !exchange) throw new Error(error?.message ?? "Could not create exchange");
+  if (error || !exchange)
+    throw new Error(error?.message ?? "Could not create exchange");
 
   await supabase.from("exchange_participants").insert({
     exchange_id: exchange.id,
@@ -82,7 +87,7 @@ export async function createExchange(
 }
 
 export async function getExchange(id: string): Promise<Exchange | null> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient();
 
   const { data: exchange, error } = await supabase
     .from("gift_exchanges")
@@ -110,7 +115,7 @@ export async function joinExchange(
   name: string,
   email: string,
 ): Promise<{ ok: true; participantId: string } | { ok: false; error: string }> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient();
 
   const { data: exchange } = await supabase
     .from("gift_exchanges")
@@ -119,7 +124,8 @@ export async function joinExchange(
     .single();
 
   if (!exchange) return { ok: false, error: "Exchange not found" };
-  if (exchange.status === "complete") return { ok: false, error: "This exchange is complete" };
+  if (exchange.status === "complete")
+    return { ok: false, error: "This exchange is complete" };
 
   const { data: existing } = await supabase
     .from("exchange_participants")
@@ -143,10 +149,18 @@ export async function joinExchange(
     if (error.code === "23505") {
       if (error.message.includes("_name")) {
         const firstName = name.trim().split(" ")[0];
-        const suggestion = `${firstName} ${name.trim().split(" ").slice(1)[0]?.[0] ?? ""}`.trim();
-        return { ok: false, error: `There's already a "${name.trim()}" in this exchange. Try adding an initial or nickname — e.g. "${suggestion}." or "${firstName} (nickname)".` };
+        const suggestion =
+          `${firstName} ${name.trim().split(" ").slice(1)[0]?.[0] ?? ""}`.trim();
+        return {
+          ok: false,
+          error: `There's already a "${name.trim()}" in this exchange. Try adding an initial or nickname — e.g. "${suggestion}." or "${firstName} (nickname)".`,
+        };
       }
-      return { ok: false, error: "That email is already registered. Check your inbox for the original invite link." };
+      return {
+        ok: false,
+        error:
+          "That email is already registered. Check your inbox for the original invite link.",
+      };
     }
     return { ok: false, error: "Could not join — please try again" };
   }
@@ -159,7 +173,7 @@ export async function updateWishList(
   exchangeId: string,
   items: WishListItem[],
 ): Promise<{ ok: boolean; error?: string }> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient();
 
   const { error } = await supabase
     .from("exchange_participants")
@@ -174,7 +188,7 @@ export async function updateWishList(
 export async function drawSecretSanta(
   exchangeId: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient();
 
   const { data: exchange } = await supabase
     .from("gift_exchanges")
@@ -254,7 +268,7 @@ export async function drawSecretSanta(
 export async function launchGame(
   exchangeId: string,
 ): Promise<{ code: string } | { ok: false; error: string }> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient();
 
   const { data: exchange } = await supabase
     .from("gift_exchanges")
@@ -266,11 +280,17 @@ export async function launchGame(
 
   const rules = exchange.rules as ExchangeRules;
   const presetName =
-    rules.maxSteals === 3 && !rules.allowImmediateStealback && rules.firstPlayerFinalTurn
+    rules.maxSteals === 3 &&
+    !rules.allowImmediateStealback &&
+    rules.firstPlayerFinalTurn
       ? "classic"
-      : rules.maxSteals === 2 && !rules.allowImmediateStealback && !rules.firstPlayerFinalTurn
+      : rules.maxSteals === 2 &&
+          !rules.allowImmediateStealback &&
+          !rules.firstPlayerFinalTurn
         ? "friendly"
-        : rules.maxSteals === 5 && rules.allowImmediateStealback && rules.firstPlayerFinalTurn
+        : rules.maxSteals === 5 &&
+            rules.allowImmediateStealback &&
+            rules.firstPlayerFinalTurn
           ? "chaos"
           : "classic";
 
@@ -290,8 +310,7 @@ export async function launchGame(
     exchange.host_email,
   );
 
-  const { createSupabaseServerClient: mkClient } = await import("@/lib/supabase/server");
-  const sb2 = await mkClient();
+  const sb2 = createSupabaseServiceClient();
 
   const { data: room } = await sb2
     .from("game_rooms")
@@ -299,7 +318,9 @@ export async function launchGame(
     .eq("code", code)
     .single();
 
-  const hostPlayer = (room?.players as Array<{ id: string; name: string; isHost: boolean }>)?.[0];
+  const hostPlayer = (
+    room?.players as Array<{ id: string; name: string; isHost: boolean }>
+  )?.[0];
   if (!hostPlayer) return { ok: false, error: "Room creation failed" };
 
   const hostParticipant = participants.find(
@@ -312,14 +333,22 @@ export async function launchGame(
 
   const extraPlayers = participants
     .filter((p) => p.name.toLowerCase() !== exchange.host_name.toLowerCase())
-    .map((p) => ({ id: p.id, name: p.name, isHost: false, wishList: p.wish_list ?? [] }));
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      isHost: false,
+      wishList: p.wish_list ?? [],
+    }));
 
   await sb2
     .from("game_rooms")
     .update({ players: [hostPlayerFull, ...extraPlayers] })
     .eq("code", code);
 
-  await supabase.from("gift_exchanges").update({ status: "active" }).eq("id", exchangeId);
+  await supabase
+    .from("gift_exchanges")
+    .update({ status: "active" })
+    .eq("id", exchangeId);
 
   return { code };
 }

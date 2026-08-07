@@ -44,7 +44,9 @@ interface GameRoom {
 // Storage helpers (identify this device's player in the room)
 // ---------------------------------------------------------------------------
 
-function getStoredPlayer(code: string): { playerId: string; playerName: string } | null {
+function getStoredPlayer(
+  code: string,
+): { playerId: string; playerName: string } | null {
   try {
     const raw = localStorage.getItem(`kk_player_${code}`);
     return raw ? JSON.parse(raw) : null;
@@ -55,7 +57,10 @@ function getStoredPlayer(code: string): { playerId: string; playerName: string }
 
 function storePlayer(code: string, playerId: string, playerName: string) {
   try {
-    localStorage.setItem(`kk_player_${code}`, JSON.stringify({ playerId, playerName }));
+    localStorage.setItem(
+      `kk_player_${code}`,
+      JSON.stringify({ playerId, playerName }),
+    );
   } catch {}
 }
 
@@ -95,22 +100,34 @@ function LobbyView({
     `&body=${encodeURIComponent(inviteText)}`;
 
   function handleCopyLink() {
-    navigator.clipboard?.writeText(inviteUrl).then(() => {
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2000);
-    }).catch(() => {});
+    navigator.clipboard
+      ?.writeText(inviteUrl)
+      .then(() => {
+        setCopiedLink(true);
+        setTimeout(() => setCopiedLink(false), 2000);
+      })
+      .catch(() => {});
   }
 
   function handleCopyMsg() {
-    navigator.clipboard?.writeText(inviteText).then(() => {
-      setCopiedMsg(true);
-      setTimeout(() => setCopiedMsg(false), 2000);
-    }).catch(() => {});
+    navigator.clipboard
+      ?.writeText(inviteText)
+      .then(() => {
+        setCopiedMsg(true);
+        setTimeout(() => setCopiedMsg(false), 2000);
+      })
+      .catch(() => {});
   }
 
   function handleShare() {
     if (navigator.share) {
-      navigator.share({ title: "Join my Kris Kringle game", text: inviteText, url: inviteUrl }).catch(() => {});
+      navigator
+        .share({
+          title: "Join my Kris Kringle game",
+          text: inviteText,
+          url: inviteUrl,
+        })
+        .catch(() => {});
     } else {
       handleCopyMsg();
     }
@@ -223,7 +240,9 @@ function LobbyView({
           Players waiting ({room.players.length})
         </h2>
         {room.players.length === 0 ? (
-          <p className="text-sm text-slate-500">No one yet — share the room code!</p>
+          <p className="text-sm text-slate-500">
+            No one yet — share the room code!
+          </p>
         ) : (
           <ul className="space-y-2">
             {room.players.map((p) => (
@@ -235,7 +254,9 @@ function LobbyView({
                     : "border-slate-200"
                 }`}
               >
-                <span className={`h-2 w-2 flex-shrink-0 rounded-full ${p.isManual ? "bg-slate-300" : "bg-emerald-400"}`} />
+                <span
+                  className={`h-2 w-2 flex-shrink-0 rounded-full ${p.isManual ? "bg-slate-300" : "bg-emerald-400"}`}
+                />
                 {p.name}
                 {p.isHost && (
                   <span className="ml-auto rounded-full bg-kringle-gold/20 px-2 py-0.5 text-xs font-bold text-amber-800">
@@ -243,7 +264,9 @@ function LobbyView({
                   </span>
                 )}
                 {p.isManual && (
-                  <span className="ml-auto text-xs text-slate-400">host controls</span>
+                  <span className="ml-auto text-xs text-slate-400">
+                    host controls
+                  </span>
                 )}
                 {p.id === myPlayerId && !p.isHost && !p.isManual && (
                   <span className="ml-auto text-xs text-slate-500">you</span>
@@ -289,8 +312,8 @@ function LobbyView({
             {starting
               ? "Starting…"
               : canStart
-              ? `Start game (${room.players.length} players)`
-              : "Need at least 2 players"}
+                ? `Start game (${room.players.length} players)`
+                : "Need at least 2 players"}
           </button>
           {!canStart && (
             <p className="text-center text-sm text-slate-500">
@@ -307,7 +330,11 @@ function LobbyView({
 // Image compression helper
 // ---------------------------------------------------------------------------
 
-function compressImage(file: File, maxDim: number, quality: number): Promise<Blob> {
+function compressImage(
+  file: File,
+  maxDim: number,
+  quality: number,
+): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -335,7 +362,13 @@ function compressImage(file: File, maxDim: number, quality: number): Promise<Blo
 // Photo capture + gallery — available to all devices in the room
 // ---------------------------------------------------------------------------
 
-function PhotoSection({ roomCode, isComplete }: { roomCode: string; isComplete: boolean }) {
+function PhotoSection({
+  roomCode,
+  isComplete,
+}: {
+  roomCode: string;
+  isComplete: boolean;
+}) {
   const [uploading, setUploading] = useState(false);
   const [myCount, setMyCount] = useState(0);
   const [photos, setPhotos] = useState<string[]>([]);
@@ -372,7 +405,10 @@ function PhotoSection({ roomCode, isComplete }: { roomCode: string; isComplete: 
       const supabase = supabaseRef.current;
       const { data } = await supabase.storage
         .from("game-photos")
-        .list(roomCode, { limit: 200, sortBy: { column: "created_at", order: "asc" } });
+        .list(roomCode, {
+          limit: 200,
+          sortBy: { column: "created_at", order: "asc" },
+        });
       if (!data) return;
       const urls = data
         .filter((f) => f.name !== ".emptyFolderPlaceholder")
@@ -407,8 +443,8 @@ function PhotoSection({ roomCode, isComplete }: { roomCode: string; isComplete: 
         setMyCount((n) => n + 1);
         if (isComplete) await loadPhotos();
       }
-    } catch {}
-    finally {
+    } catch {
+    } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
     }
@@ -458,7 +494,11 @@ function PhotoSection({ roomCode, isComplete }: { roomCode: string; isComplete: 
                   className="aspect-square overflow-hidden rounded-xl border-2 border-slate-100"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={url} alt="Party photo" className="h-full w-full object-cover" />
+                  <img
+                    src={url}
+                    alt="Party photo"
+                    className="h-full w-full object-cover"
+                  />
                 </button>
               ))}
             </div>
@@ -549,7 +589,9 @@ function SpectatorView({
       {/* YOUR TURN — big moment banner */}
       {isMyTurn && !isComplete && (
         <div className="rounded-2xl bg-kringle-cranberry p-5 text-white">
-          <p className="text-center text-2xl font-black">🎙️ It&apos;s your turn!</p>
+          <p className="text-center text-2xl font-black">
+            🎙️ It&apos;s your turn!
+          </p>
           <p className="mt-1 text-center text-sm font-semibold opacity-80">
             Tell the host what you want to do
           </p>
@@ -571,19 +613,32 @@ function SpectatorView({
                   {isFinalTurn ? "Or swap:" : "Or steal:"}
                 </p>
                 {steals.map((g) => (
-                  <div key={g.id} className="rounded-xl bg-white/20 px-3 py-2 text-sm font-semibold">
+                  <div
+                    key={g.id}
+                    className="rounded-xl bg-white/20 px-3 py-2 text-sm font-semibold"
+                  >
                     🤜 Gift #{g.giftNumber} from {nameById.get(g.ownerId!)}
                   </div>
                 ))}
               </div>
             )}
-            {isFinalTurn && state.gifts
-              .filter((g) => g.ownerId !== null && g.ownerId !== myPlayerId && !isLocked(g, state.rules))
-              .map((g) => (
-                <div key={g.id} className="rounded-xl bg-white/20 px-3 py-2 text-sm font-semibold">
-                  🔄 Swap with Gift #{g.giftNumber} from {nameById.get(g.ownerId!)}
-                </div>
-              ))}
+            {isFinalTurn &&
+              state.gifts
+                .filter(
+                  (g) =>
+                    g.ownerId !== null &&
+                    g.ownerId !== myPlayerId &&
+                    !isLocked(g, state.rules),
+                )
+                .map((g) => (
+                  <div
+                    key={g.id}
+                    className="rounded-xl bg-white/20 px-3 py-2 text-sm font-semibold"
+                  >
+                    🔄 Swap with Gift #{g.giftNumber} from{" "}
+                    {nameById.get(g.ownerId!)}
+                  </div>
+                ))}
           </div>
         </div>
       )}
@@ -599,15 +654,21 @@ function SpectatorView({
         >
           {isFinalTurn ? (
             <div className="text-amber-900">
-              <p className="text-xs font-bold uppercase tracking-wide">Final turn</p>
-              <p className="mt-0.5 text-xl font-black">{currentName} — keep or swap</p>
+              <p className="text-xs font-bold uppercase tracking-wide">
+                Final turn
+              </p>
+              <p className="mt-0.5 text-xl font-black">
+                {currentName} — keep or swap
+              </p>
             </div>
           ) : (
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-kringle-spruce/60">
                 Now playing
               </p>
-              <p className="mt-0.5 text-xl font-black text-kringle-spruce">{currentName}</p>
+              <p className="mt-0.5 text-xl font-black text-kringle-spruce">
+                {currentName}
+              </p>
             </div>
           )}
         </div>
@@ -630,7 +691,9 @@ function SpectatorView({
 
       {/* Gift board — read-only */}
       <section>
-        <h2 className="mb-3 text-sm font-black uppercase tracking-wide text-slate-500">Gifts</h2>
+        <h2 className="mb-3 text-sm font-black uppercase tracking-wide text-slate-500">
+          Gifts
+        </h2>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {state.gifts.map((gift) => {
             const owner = gift.ownerId ? nameById.get(gift.ownerId) : null;
@@ -643,10 +706,10 @@ function SpectatorView({
                   gift.ownerId === null
                     ? "border-slate-200 bg-slate-50 text-slate-400"
                     : isMyGift
-                    ? "border-kringle-cranberry bg-red-50 text-slate-800"
-                    : locked
-                    ? "border-kringle-gold bg-amber-50 text-slate-800"
-                    : "border-sky-200 bg-sky-50 text-slate-800"
+                      ? "border-kringle-cranberry bg-red-50 text-slate-800"
+                      : locked
+                        ? "border-kringle-gold bg-amber-50 text-slate-800"
+                        : "border-sky-200 bg-sky-50 text-slate-800"
                 }`}
               >
                 <p className="font-black">Gift #{gift.giftNumber}</p>
@@ -660,7 +723,11 @@ function SpectatorView({
                       <p className="text-xs text-slate-500">
                         {locked ? (
                           <span className="inline-flex items-center gap-1">
-                            <GeneratedIcon name="locked-gift" className="h-4 w-4" /> locked
+                            <GeneratedIcon
+                              name="locked-gift"
+                              className="h-4 w-4"
+                            />{" "}
+                            locked
                           </span>
                         ) : (
                           `Stolen ${gift.stealCount}×`
@@ -693,7 +760,10 @@ function SpectatorView({
               const isOpen = openWishList === p.id;
               const gift = giftOwnedBy(state, p.id);
               return (
-                <div key={p.id} className="overflow-hidden rounded-2xl border-2 border-slate-200">
+                <div
+                  key={p.id}
+                  className="overflow-hidden rounded-2xl border-2 border-slate-200"
+                >
                   <button
                     type="button"
                     onClick={() => setOpenWishList(isOpen ? null : p.id)}
@@ -702,7 +772,9 @@ function SpectatorView({
                     <div className="flex items-center gap-2">
                       <span className="font-black">{p.name}</span>
                       {p.id === myPlayerId && (
-                        <span className="text-xs font-semibold text-slate-400">(you)</span>
+                        <span className="text-xs font-semibold text-slate-400">
+                          (you)
+                        </span>
                       )}
                       {gift && (
                         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-500">
@@ -710,18 +782,27 @@ function SpectatorView({
                         </span>
                       )}
                     </div>
-                    <span className="text-xs text-slate-400">{isOpen ? "▲" : "▼"}</span>
+                    <span className="text-xs text-slate-400">
+                      {isOpen ? "▲" : "▼"}
+                    </span>
                   </button>
                   {isOpen && (
                     <div className="border-t border-slate-100 px-4 py-3">
                       <ul className="space-y-2">
                         {wl.map((item, i) => (
-                          <li key={i} className="flex items-start gap-2 text-sm">
+                          <li
+                            key={i}
+                            className="flex items-start gap-2 text-sm"
+                          >
                             <span className="mt-0.5 text-slate-300">•</span>
                             <div className="flex-1">
-                              <span className="font-semibold">{item.label}</span>
+                              <span className="font-semibold">
+                                {item.label}
+                              </span>
                               {item.notes && (
-                                <p className="text-xs text-slate-500">{item.notes}</p>
+                                <p className="text-xs text-slate-500">
+                                  {item.notes}
+                                </p>
                               )}
                             </div>
                             {item.url && (
@@ -764,7 +845,9 @@ function SpectatorView({
                     {p.name}
                     {p.id === myPlayerId && " (you)"}
                   </span>
-                  <span className="text-slate-600">{gift ? `Gift #${gift.giftNumber}` : "No gift"}</span>
+                  <span className="text-slate-600">
+                    {gift ? `Gift #${gift.giftNumber}` : "No gift"}
+                  </span>
                 </li>
               );
             })}
@@ -776,7 +859,9 @@ function SpectatorView({
       <PhotoSection roomCode={room.code} isComplete={isComplete} />
 
       {/* Room code footer */}
-      <p className="text-center text-xs font-semibold text-slate-400">Room {room.code}</p>
+      <p className="text-center text-xs font-semibold text-slate-400">
+        Room {room.code}
+      </p>
     </div>
   );
 }
@@ -802,8 +887,10 @@ function GameBoard({
   const currentName = currentId ? nameById.get(currentId) : null;
   const isMyTurn = !!myPlayerId && currentId === myPlayerId;
   // Host device can act for manually-added players (no phone of their own)
-  const isHostDevice = !!myPlayerId && room.players.find((p) => p.id === myPlayerId)?.isHost;
-  const currentPlayerIsManual = room.players.find((p) => p.id === currentId)?.isManual ?? false;
+  const isHostDevice =
+    !!myPlayerId && room.players.find((p) => p.id === myPlayerId)?.isHost;
+  const currentPlayerIsManual =
+    room.players.find((p) => p.id === currentId)?.isManual ?? false;
   const canAct = isMyTurn || (!!isHostDevice && currentPlayerIsManual);
   const steals = currentId ? eligibleSteals(state, currentId) : [];
   const unopened = unopenedGifts(state);
@@ -838,12 +925,12 @@ function GameBoard({
           isComplete
             ? "border-kringle-gold bg-amber-50"
             : isPaused
-            ? "border-slate-300 bg-slate-50"
-            : isFinalTurn
-            ? "border-kringle-gold bg-amber-50"
-            : canAct
-            ? "border-kringle-cranberry bg-kringle-cranberry text-white"
-            : "border-kringle-spruce bg-kringle-spruce text-white"
+              ? "border-slate-300 bg-slate-50"
+              : isFinalTurn
+                ? "border-kringle-gold bg-amber-50"
+                : canAct
+                  ? "border-kringle-cranberry bg-kringle-cranberry text-white"
+                  : "border-kringle-spruce bg-kringle-spruce text-white"
         }`}
       >
         {isComplete ? (
@@ -863,9 +950,13 @@ function GameBoard({
           </div>
         ) : isFinalTurn ? (
           <div className="text-amber-900">
-            <p className="text-sm font-bold uppercase tracking-wide">Final turn</p>
+            <p className="text-sm font-bold uppercase tracking-wide">
+              Final turn
+            </p>
             <p className="mt-1 text-xl font-black">
-              {isMyTurn ? "Your final turn — keep or swap" : `${currentName} — final turn`}
+              {isMyTurn
+                ? "Your final turn — keep or swap"
+                : `${currentName} — final turn`}
             </p>
           </div>
         ) : (
@@ -913,7 +1004,8 @@ function GameBoard({
                     disabled={!canAct}
                     className={`min-h-12 w-full rounded-2xl border-2 font-bold disabled:cursor-not-allowed disabled:opacity-40 ${canAct ? "border-kringle-cranberry text-kringle-cranberry hover:bg-kringle-cranberry hover:text-white" : "border-slate-300 text-slate-500"}`}
                   >
-                    Swap with {nameById.get(g.ownerId!)}&apos;s Gift #{g.giftNumber}
+                    Swap with {nameById.get(g.ownerId!)}&apos;s Gift #
+                    {g.giftNumber}
                   </button>
                 ))}
             </>
@@ -923,12 +1015,18 @@ function GameBoard({
                 <button
                   type="button"
                   onClick={() =>
-                    act({ type: "open", playerId: currentId!, giftId: unopened[0]!.id })
+                    act({
+                      type: "open",
+                      playerId: currentId!,
+                      giftId: unopened[0]!.id,
+                    })
                   }
                   disabled={!canAct}
                   className={`min-h-14 w-full rounded-2xl text-lg font-black text-white shadow-[3px_3px_0_rgba(0,0,0,0.12)] disabled:cursor-not-allowed disabled:opacity-40 ${canAct ? "bg-kringle-cranberry" : "bg-slate-400"}`}
                 >
-                  {isMyTurn ? `Open Gift #${unopened[0]!.giftNumber}` : `${currentName} opens Gift #${unopened[0]!.giftNumber}`}
+                  {isMyTurn
+                    ? `Open Gift #${unopened[0]!.giftNumber}`
+                    : `${currentName} opens Gift #${unopened[0]!.giftNumber}`}
                 </button>
               )}
               {steals.length > 0 && (
@@ -941,7 +1039,11 @@ function GameBoard({
                       key={g.id}
                       type="button"
                       onClick={() =>
-                        act({ type: "steal", playerId: currentId!, giftId: g.id })
+                        act({
+                          type: "steal",
+                          playerId: currentId!,
+                          giftId: g.id,
+                        })
                       }
                       disabled={!canAct}
                       className={`min-h-12 w-full rounded-2xl border-2 font-bold disabled:cursor-not-allowed disabled:opacity-40 ${canAct ? "border-kringle-spruce text-kringle-spruce hover:bg-kringle-spruce hover:text-white" : "border-slate-300 text-slate-500"}`}
@@ -998,10 +1100,10 @@ function GameBoard({
                   gift.ownerId === null
                     ? "border-slate-200 bg-slate-50 text-slate-400"
                     : isMyGift
-                    ? "border-kringle-cranberry bg-red-50 text-slate-800"
-                    : locked
-                    ? "border-kringle-gold bg-amber-50 text-slate-800"
-                    : "border-sky-200 bg-sky-50 text-slate-800"
+                      ? "border-kringle-cranberry bg-red-50 text-slate-800"
+                      : locked
+                        ? "border-kringle-gold bg-amber-50 text-slate-800"
+                        : "border-sky-200 bg-sky-50 text-slate-800"
                 }`}
               >
                 <p className="font-black">Gift #{gift.giftNumber}</p>
@@ -1010,7 +1112,17 @@ function GameBoard({
                     <p className="mt-0.5 font-semibold">{owner}</p>
                     {gift.stealCount > 0 && (
                       <p className="text-xs text-slate-500">
-                        {locked ? <span className="inline-flex items-center gap-1"><GeneratedIcon name="locked-gift" className="h-5 w-5" /> locked</span> : `Stolen ${gift.stealCount}×`}
+                        {locked ? (
+                          <span className="inline-flex items-center gap-1">
+                            <GeneratedIcon
+                              name="locked-gift"
+                              className="h-5 w-5"
+                            />{" "}
+                            locked
+                          </span>
+                        ) : (
+                          `Stolen ${gift.stealCount}×`
+                        )}
                       </p>
                     )}
                   </>
@@ -1104,12 +1216,14 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
   }
 
   async function handleStart() {
-    const result = await startGame(room.code);
+    if (!myPlayerId) throw new Error("Join the room first");
+    const result = await startGame(room.code, myPlayerId);
     if (!result.ok) throw new Error(result.error);
   }
 
   function handleAction(action: GameActionInput) {
-    performRoomAction(room.code, action).catch(console.error);
+    if (!myPlayerId) return;
+    performRoomAction(room.code, action, myPlayerId).catch(console.error);
   }
 
   const isHostDevice =
@@ -1125,7 +1239,11 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
           onStart={handleStart}
         />
       ) : isHostDevice ? (
-        <GameBoard room={room} myPlayerId={myPlayerId} onAction={handleAction} />
+        <GameBoard
+          room={room}
+          myPlayerId={myPlayerId}
+          onAction={handleAction}
+        />
       ) : (
         <SpectatorView room={room} myPlayerId={myPlayerId} />
       )}
