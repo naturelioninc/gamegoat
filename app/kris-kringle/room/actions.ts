@@ -1,6 +1,7 @@
 "use server";
 
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   createInitialState,
   applyAction,
@@ -37,6 +38,8 @@ export async function createRoom(
   hostEmail: string = "",
 ): Promise<{ code: string; playerId: string; playerToken: string }> {
   const supabase = createSupabaseServiceClient();
+  const authClient = await createSupabaseServerClient();
+  const { data: { user } } = await authClient.auth.getUser();
   const playerId = randomUUID();
   const playerToken = newPlayerToken();
   const rules =
@@ -48,7 +51,8 @@ export async function createRoom(
       game_type: "kris_kringle",
       rules,
       players: [{ id: playerId, name: hostName.trim(), isHost: true }],
-      host_email: hostEmail.trim() || null,
+      host_email: hostEmail.trim().toLowerCase() || user?.email?.toLowerCase() || null,
+      host_user_id: user?.id ?? null,
       status: "lobby",
     })
     .select("id, code")
@@ -61,6 +65,57 @@ export async function createRoom(
     .insert({ room_id: data.id, player_id: playerId, token_hash: hashPlayerToken(playerToken) });
   if (sessionError) throw new Error("Could not secure host session");
   return { code: data.code, playerId, playerToken };
+}
+
+export async function recoverHostSession(
+  code: string,
+): Promise<
+  | { ok: true; playerId: string; playerName: string; playerToken: string }
+  | { ok: false; error: string; signInUrl?: string }
+> {
+  const authClient = await createSupabaseServerClient();
+  const { data: { user } } = await authClient.auth.getUser();
+  const returnUrl = `https://games.xmasgoat.com/kris-kringle/room/${code.toUpperCase()}`;
+  if (!user) {
+    return {
+      ok: false,
+      error: "Sign in with the host account to recover controls",
+      signInUrl: `https://account.xmasgoat.com?next=${encodeURIComponent(returnUrl)}`,
+    };
+  }
+
+  const supabase = createSupabaseServiceClient();
+  const { data: room } = await supabase
+    .from("game_rooms")
+    .select("id, players, host_user_id, host_email")
+    .eq("code", code.toUpperCase())
+    .gt("expires_at", new Date().toISOString())
+    .maybeSingle();
+  if (!room) return { ok: false, error: "Room not found or expired" };
+
+  const matchesAccount =
+    room.host_user_id === user.id ||
+    (!room.host_user_id && user.email && room.host_email === user.email.toLowerCase());
+  if (!matchesAccount) {
+    return { ok: false, error: "This account is not the host of this room" };
+  }
+
+  if (!room.host_user_id) {
+    await supabase.from("game_rooms").update({ host_user_id: user.id }).eq("id", room.id);
+  }
+  const host = (room.players as Array<{ id: string; name: string; isHost?: boolean }>).find(
+    (player) => player.isHost,
+  );
+  if (!host) return { ok: false, error: "This room has no host record" };
+
+  const playerToken = newPlayerToken();
+  const { error } = await supabase.from("game_room_player_sessions").insert({
+    room_id: room.id,
+    player_id: host.id,
+    token_hash: hashPlayerToken(playerToken),
+  });
+  if (error) return { ok: false, error: "Could not restore host controls" };
+  return { ok: true, playerId: host.id, playerName: host.name, playerToken };
 }
 
 export async function joinRoom(

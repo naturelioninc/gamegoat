@@ -11,7 +11,7 @@ import {
   giftOwnedBy,
 } from "@/lib/engine/engine";
 import type { GameState, GameActionInput } from "@/lib/engine/types";
-import { joinRoom, startGame, performRoomAction } from "../actions";
+import { joinRoom, startGame, performRoomAction, recoverHostSession } from "../actions";
 import { GeneratedIcon } from "@/components/GeneratedIcon";
 
 // ---------------------------------------------------------------------------
@@ -1184,6 +1184,7 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
   const [myPlayerToken, setMyPlayerToken] = useState<string | null>(null);
   const [sessionError, setSessionError] = useState("");
+  const [recoveringHost, setRecoveringHost] = useState(false);
   const supabaseRef = useRef(createSupabaseBrowserClient());
 
   // Load player identity from localStorage
@@ -1242,6 +1243,29 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
     }).catch(() => setSessionError("Connection interrupted — please try again"));
   }
 
+  async function handleRecoverHost() {
+    setRecoveringHost(true);
+    setSessionError("");
+    try {
+      const result = await recoverHostSession(room.code);
+      if (!result.ok) {
+        if (result.signInUrl) {
+          window.location.assign(result.signInUrl);
+          return;
+        }
+        setSessionError(result.error);
+        return;
+      }
+      storePlayer(room.code, result.playerId, result.playerName, result.playerToken);
+      setMyPlayerId(result.playerId);
+      setMyPlayerToken(result.playerToken);
+    } catch {
+      setSessionError("Could not recover host controls — please try again");
+    } finally {
+      setRecoveringHost(false);
+    }
+  }
+
   const isHostDevice =
     !!myPlayerId && room.players.some((p) => p.id === myPlayerId && p.isHost);
 
@@ -1251,6 +1275,19 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
         <p role="alert" className="mb-5 rounded-2xl border-2 border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
           {sessionError}
         </p>
+      )}
+      {!isHostDevice && (
+        <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+          <p className="text-xs font-semibold text-slate-600">Hosting on another device?</p>
+          <button
+            type="button"
+            onClick={handleRecoverHost}
+            disabled={recoveringHost}
+            className="min-h-10 shrink-0 rounded-xl border-2 border-kringle-spruce px-3 text-xs font-black text-kringle-spruce disabled:opacity-50"
+          >
+            {recoveringHost ? "Checking…" : "Recover host controls"}
+          </button>
+        </div>
       )}
       {room.status === "lobby" ? (
         <LobbyView
