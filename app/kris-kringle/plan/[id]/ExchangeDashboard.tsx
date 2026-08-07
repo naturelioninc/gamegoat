@@ -230,6 +230,10 @@ export function ExchangeDashboard({ exchange: initial }: { exchange: Exchange })
       if ("ok" in result && !result.ok) {
         setActionError(result.error ?? "Could not launch game");
       } else if ("code" in result) {
+        localStorage.setItem(
+          `kk_player_${result.code}`,
+          JSON.stringify({ playerId: result.playerId, playerName: result.playerName }),
+        );
         router.push(`/kris-kringle/room/${result.code}`);
       }
     });

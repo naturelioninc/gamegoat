@@ -5,7 +5,7 @@ import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/sender";
 import { secretSantaEmail } from "@/lib/email/templates";
 import { createRoom } from "@/app/kris-kringle/room/actions";
-import { randomUUID } from "crypto";
+import { createHash, randomBytes, randomUUID } from "crypto";
 import type { WishListItem } from "@/lib/email/templates";
 
 export interface ExchangeRules {
@@ -39,6 +39,45 @@ export interface Participant {
   joined_at: string;
 }
 
+export type PublicExchange = Pick<
+  Exchange,
+  "id" | "host_name" | "name" | "party_date" | "budget_cents" | "status"
+>;
+
+function hashAccessToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+async function getAuthenticatedUser() {
+  const authClient = await createSupabaseServerClient();
+  const { data: { user } } = await authClient.auth.getUser();
+  return user;
+}
+
+async function hostOwnsExchange(exchangeId: string) {
+  const user = await getAuthenticatedUser();
+  if (!user) return false;
+  const supabase = createSupabaseServiceClient();
+  const { data } = await supabase
+    .from("gift_exchanges")
+    .select("id, user_id, host_email")
+    .eq("id", exchangeId)
+    .maybeSingle();
+  if (!data) return false;
+  if (data.user_id === user.id) return true;
+  if (!data.user_id && user.email && data.host_email === user.email.toLowerCase()) {
+    const { data: claimed } = await supabase
+      .from("gift_exchanges")
+      .update({ user_id: user.id })
+      .eq("id", exchangeId)
+      .is("user_id", null)
+      .select("id")
+      .maybeSingle();
+    return Boolean(claimed);
+  }
+  return false;
+}
+
 export async function createExchange(
   hostName: string,
   hostEmail: string,
@@ -47,10 +86,8 @@ export async function createExchange(
   budgetCents?: number,
   rules?: Partial<ExchangeRules>,
 ): Promise<{ id: string }> {
-  const authClient = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await authClient.auth.getUser();
+  const user = await getAuthenticatedUser();
+  if (!user) throw new Error("Sign in to create a planned exchange");
   const supabase = createSupabaseServiceClient();
 
   const finalRules: ExchangeRules = {
@@ -68,7 +105,7 @@ export async function createExchange(
       party_date: partyDate || null,
       budget_cents: budgetCents ?? null,
       rules: finalRules,
-      user_id: user?.id ?? null,
+      user_id: user.id,
     })
     .select("id")
     .single();
@@ -87,6 +124,7 @@ export async function createExchange(
 }
 
 export async function getExchange(id: string): Promise<Exchange | null> {
+  if (!(await hostOwnsExchange(id))) return null;
   const supabase = createSupabaseServiceClient();
 
   const { data: exchange, error } = await supabase
@@ -110,12 +148,41 @@ export async function getExchange(id: string): Promise<Exchange | null> {
   };
 }
 
+export async function getPublicExchange(id: string): Promise<PublicExchange | null> {
+  const supabase = createSupabaseServiceClient();
+  const { data } = await supabase
+    .from("gift_exchanges")
+    .select("id, host_name, name, party_date, budget_cents, status")
+    .eq("id", id)
+    .maybeSingle();
+  return data as PublicExchange | null;
+}
+
+export async function getParticipantExchange(
+  exchangeId: string,
+  accessToken: string,
+): Promise<{ exchange: PublicExchange; participant: Omit<Participant, "email" | "secret_santa_for"> } | null> {
+  if (!accessToken) return null;
+  const supabase = createSupabaseServiceClient();
+  const { data: participant } = await supabase
+    .from("exchange_participants")
+    .select("id, exchange_id, name, wish_list, joined_at")
+    .eq("exchange_id", exchangeId)
+    .eq("access_token_hash", hashAccessToken(accessToken))
+    .maybeSingle();
+  if (!participant) return null;
+  const exchange = await getPublicExchange(exchangeId);
+  if (!exchange) return null;
+  return { exchange, participant: participant as Omit<Participant, "email" | "secret_santa_for"> };
+}
+
 export async function joinExchange(
   exchangeId: string,
   name: string,
   email: string,
-): Promise<{ ok: true; participantId: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; accessToken: string } | { ok: false; error: string }> {
   const supabase = createSupabaseServiceClient();
+  const accessToken = randomBytes(32).toString("base64url");
 
   const { data: exchange } = await supabase
     .from("gift_exchanges")
@@ -134,7 +201,15 @@ export async function joinExchange(
     .eq("email", email.trim().toLowerCase())
     .single();
 
-  if (existing) return { ok: true, participantId: existing.id };
+  if (existing) {
+    const { error } = await supabase
+      .from("exchange_participants")
+      .update({ access_token_hash: hashAccessToken(accessToken) })
+      .eq("id", existing.id)
+      .eq("exchange_id", exchangeId);
+    if (error) return { ok: false, error: "Could not open your wish list" };
+    return { ok: true, accessToken };
+  }
 
   const participantId = randomUUID();
   const { error } = await supabase.from("exchange_participants").insert({
@@ -143,6 +218,7 @@ export async function joinExchange(
     name: name.trim(),
     email: email.trim().toLowerCase(),
     wish_list: [],
+    access_token_hash: hashAccessToken(accessToken),
   });
 
   if (error) {
@@ -165,23 +241,25 @@ export async function joinExchange(
     return { ok: false, error: "Could not join — please try again" };
   }
 
-  return { ok: true, participantId };
+  return { ok: true, accessToken };
 }
 
 export async function updateWishList(
-  participantId: string,
   exchangeId: string,
+  accessToken: string,
   items: WishListItem[],
 ): Promise<{ ok: boolean; error?: string }> {
   const supabase = createSupabaseServiceClient();
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("exchange_participants")
     .update({ wish_list: items })
-    .eq("id", participantId)
-    .eq("exchange_id", exchangeId);
+    .eq("exchange_id", exchangeId)
+    .eq("access_token_hash", hashAccessToken(accessToken))
+    .select("id")
+    .maybeSingle();
 
-  if (error) return { ok: false, error: error.message };
+  if (error || !data) return { ok: false, error: "Your private wish-list link is invalid or expired" };
   return { ok: true };
 }
 
@@ -189,6 +267,7 @@ export async function drawSecretSanta(
   exchangeId: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const supabase = createSupabaseServiceClient();
+  if (!(await hostOwnsExchange(exchangeId))) return { ok: false, error: "Host access required" };
 
   const { data: exchange } = await supabase
     .from("gift_exchanges")
@@ -209,7 +288,11 @@ export async function drawSecretSanta(
     return { ok: false, error: "Need at least 2 participants" };
   }
 
-  const shuffled = [...participants].sort(() => Math.random() - 0.5);
+  const shuffled = [...participants];
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
+  }
 
   const updates = shuffled.map((p, i) => ({
     id: p.id,
@@ -267,8 +350,9 @@ export async function drawSecretSanta(
 
 export async function launchGame(
   exchangeId: string,
-): Promise<{ code: string } | { ok: false; error: string }> {
+): Promise<{ code: string; playerId: string; playerName: string } | { ok: false; error: string }> {
   const supabase = createSupabaseServiceClient();
+  if (!(await hostOwnsExchange(exchangeId))) return { ok: false, error: "Host access required" };
 
   const { data: exchange } = await supabase
     .from("gift_exchanges")
@@ -304,7 +388,7 @@ export async function launchGame(
     return { ok: false, error: "Need at least 2 participants" };
   }
 
-  const { code } = await createRoom(
+  const { code, playerId } = await createRoom(
     exchange.host_name,
     presetName,
     exchange.host_email,
@@ -350,5 +434,5 @@ export async function launchGame(
     .update({ status: "active" })
     .eq("id", exchangeId);
 
-  return { code };
+  return { code, playerId, playerName: exchange.host_name };
 }

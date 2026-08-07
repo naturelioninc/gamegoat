@@ -24,7 +24,7 @@ export function JoinForm({ exchangeId }: { exchangeId: string }) {
         setNameConflict(result.error.includes("already a \""));
       } else {
         router.push(
-          `/kris-kringle/exchange/${exchangeId}/wishlist?p=${result.participantId}`,
+          `/kris-kringle/exchange/${exchangeId}/wishlist?token=${encodeURIComponent(result.accessToken)}`,
         );
       }
     });

@@ -4,18 +4,18 @@ import { useState, useEffect, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { updateWishList } from "@/app/kris-kringle/plan/actions";
 import type { WishListItem } from "@/lib/email/templates";
-import type { Exchange, Participant } from "@/app/kris-kringle/plan/actions";
+import type { PublicExchange, Participant } from "@/app/kris-kringle/plan/actions";
 function newItem(): WishListItem {
   return { id: Math.random().toString(36).slice(2), name: "", url: "", priceCents: undefined };
 }
 
 export default function WishListPage({ params }: { params: Promise<{ id: string }> }) {
   const searchParams = useSearchParams();
-  const participantId = searchParams.get("p") ?? "";
+  const accessToken = searchParams.get("token") ?? "";
 
   const [exchangeId, setExchangeId] = useState("");
-  const [exchange, setExchange] = useState<Exchange | null>(null);
-  const [participant, setParticipant] = useState<Participant | null>(null);
+  const [exchange, setExchange] = useState<PublicExchange | null>(null);
+  const [participant, setParticipant] = useState<Omit<Participant, "email" | "secret_santa_for"> | null>(null);
   const [items, setItems] = useState<WishListItem[]>([newItem()]);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
@@ -25,22 +25,21 @@ export default function WishListPage({ params }: { params: Promise<{ id: string 
   useEffect(() => {
     params.then(({ id }) => {
       setExchangeId(id);
-      fetch(`/api/exchange/${id}`)
+      fetch(`/api/exchange/${id}?token=${encodeURIComponent(accessToken)}`)
         .then((r) => r.json())
-        .then((data: Exchange) => {
-          setExchange(data);
-          const p = data.participants.find((p) => p.id === participantId);
-          if (p) {
-            setParticipant(p);
-            if (p.wish_list && p.wish_list.length > 0) {
-              setItems(p.wish_list.map((i) => ({ ...i, url: i.url ?? "" })));
+        .then((data: { exchange: PublicExchange; participant: Omit<Participant, "email" | "secret_santa_for"> }) => {
+          setExchange(data.exchange);
+          if (data.participant) {
+            setParticipant(data.participant);
+            if (data.participant.wish_list && data.participant.wish_list.length > 0) {
+              setItems(data.participant.wish_list.map((i) => ({ ...i, url: i.url ?? "" })));
             }
           }
         })
         .catch(() => setError("Could not load exchange"))
         .finally(() => setLoading(false));
     });
-  }, [params, participantId]);
+  }, [params, accessToken]);
 
   function addItem() {
     setItems((prev) => [...prev, newItem()]);
@@ -56,7 +55,7 @@ export default function WishListPage({ params }: { params: Promise<{ id: string 
 
   function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    if (!participantId || !exchangeId) return;
+    if (!accessToken || !exchangeId) return;
     const validItems = items
       .filter((i) => i.name.trim())
       .map((i) => ({
@@ -67,7 +66,7 @@ export default function WishListPage({ params }: { params: Promise<{ id: string 
       }));
     setError("");
     startTransition(async () => {
-      const result = await updateWishList(participantId, exchangeId, validItems);
+      const result = await updateWishList(exchangeId, accessToken, validItems);
       if (!result.ok) {
         setError(result.error ?? "Could not save");
       } else {

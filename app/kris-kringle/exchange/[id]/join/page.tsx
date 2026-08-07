@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getExchange } from "@/app/kris-kringle/plan/actions";
+import { getPublicExchange } from "@/app/kris-kringle/plan/actions";
 import { JoinForm } from "./JoinForm";
 
 export default async function JoinExchangePage({
@@ -8,7 +8,7 @@ export default async function JoinExchangePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const exchange = await getExchange(id);
+  const exchange = await getPublicExchange(id);
 
   if (!exchange || exchange.status === "complete") {
     notFound();

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/supabase/auth";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { AccountPanel } from "./AccountPanel";
 
 export const metadata = { title: "My Account" };
@@ -9,7 +9,7 @@ export default async function AccountPage() {
   const user = await getUser();
   if (!user) redirect("https://account.xmasgoat.com?next=https://games.xmasgoat.com/account");
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient();
 
   // Fetch exchanges owned by this user_id, plus backfill any created by email before account existed
   const [{ data: byId }, { data: byEmail }] = await Promise.all([

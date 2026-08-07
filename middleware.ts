@@ -28,7 +28,13 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user && request.nextUrl.pathname.startsWith("/kris-kringle/plan")) {
+    const returnUrl = `https://games.xmasgoat.com${request.nextUrl.pathname}${request.nextUrl.search}`;
+    return NextResponse.redirect(
+      `https://account.xmasgoat.com?next=${encodeURIComponent(returnUrl)}`,
+    );
+  }
   return response;
 }
 
