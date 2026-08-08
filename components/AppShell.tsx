@@ -6,10 +6,12 @@ import { Header } from "./Header";
 import { BottomNav } from "./BottomNav";
 import { GamePickerOverlay } from "./GamePickerOverlay";
 import { Snowfall } from "./fx/Snowfall";
+import { FirstRunExperience } from "./FirstRunExperience";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isLiveRoom = /\/(kris-kringle|secret-santa)\/room\//.test(pathname);
+  const scene = pathname.includes("secret-santa") ? "scene-secret-santa" : pathname.includes("kris-kringle") ? "scene-white-elephant" : "scene-game-goat";
   const [menuOpen, setMenuOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -39,6 +41,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <FirstRunExperience />
       <Snowfall />
       <Header
         menuOpen={menuOpen}
@@ -55,7 +58,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      <div className={`flex-1 ${isLiveRoom ? "pb-4" : "pb-20 sm:pb-0"}`}>{children}</div>
+      <div className={`route-scene flex-1 ${scene} ${isLiveRoom ? "pb-4" : "pb-20 sm:pb-0"}`}>{children}</div>
 
       <BottomNav onPlayClick={openPicker} />
 

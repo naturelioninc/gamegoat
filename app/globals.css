@@ -44,6 +44,18 @@
 .native-app .app-header {
   top: 0;
 }
+.native-app body {
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+.route-scene { transition: background-color 220ms ease, background-image 220ms ease; }
+.scene-white-elephant { background-image: radial-gradient(circle at 100% 0, rgba(164,22,26,.09), transparent 28rem); }
+.scene-secret-santa { background-image: radial-gradient(circle at 100% 0, rgba(15,81,50,.12), transparent 28rem); }
+.scene-game-goat { background-image: radial-gradient(circle at 100% 0, rgba(248,223,146,.14), transparent 30rem); }
+.kk-welcome-glow { background: radial-gradient(circle at 50% 70%, rgba(248,223,146,.65), transparent 48%); animation: kk-welcome-pulse 2.4s ease-in-out infinite alternate; }
+@keyframes kk-welcome-pulse { from { opacity: .18; transform: scale(.96); } to { opacity: .38; transform: scale(1.04); } }
 
 table {
   max-width: 100%;
@@ -99,4 +111,6 @@ html:not(.kk-live) .kk-flake > span {
 @media (prefers-reduced-motion: reduce) {
   .kk-flake, .kk-flake > span { animation: none; }
   .animate-kk-float, .animate-kk-pop-in, .animate-kk-slide-up { animation-duration: 0.01ms; }
+  .kk-welcome-glow { animation: none; }
+  .route-scene { transition: none; }
 }
