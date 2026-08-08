@@ -3,13 +3,13 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import QRCode from "react-qr-code";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { joinRoom, addManualPlayers } from "@/app/kris-kringle/room/actions";
+import { joinRoom, addManualPlayers, updateLobby } from "@/app/kris-kringle/room/actions";
 import { drawSecretSantaRoom, getSecretSantaMatch } from "../actions";
 import { GeneratedIcon } from "@/components/GeneratedIcon";
 import { upsertGameHistory } from "@/lib/game-history";
 
 interface Player { id: string; name: string; isHost?: boolean; isManual?: boolean }
-interface Room { code: string; status: "lobby" | "active"; players: Player[] }
+interface Room { code: string; status: "lobby" | "active"; players: Player[]; lobby_locked?: boolean }
 
 const storageKey = (code: string) => `ss_player_${code}`;
 
@@ -54,6 +54,12 @@ export function SecretSantaRoomClient({ initialRoom }: { initialRoom: Room }) {
     if (result.ok) setManualName("");
   }
 
+  async function changeLobby(change: { type: "lock"; locked: boolean } | { type: "remove"; playerId: string }) {
+    if (!identity) return;
+    const result = await updateLobby(room.code, identity.playerId, identity.playerToken, change);
+    if (!result.ok) setMessage(result.error || "Could not update the lobby");
+  }
+
   function drawNames() {
     if (!identity) return;
     startTransition(async () => {
@@ -83,11 +89,12 @@ export function SecretSantaRoomClient({ initialRoom }: { initialRoom: Room }) {
 
       <section className="space-y-2">
         <div className="flex items-center justify-between"><h2 className="font-black">People</h2><span className="text-xs font-bold text-slate-400">{room.players.length} joined</span></div>
-        <div className="overflow-hidden rounded-xl border border-slate-200"><div className="grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem] bg-slate-100 px-3 py-1.5 text-[9px] font-black uppercase text-slate-500"><span>Name</span><span>Status</span><span>Plays on</span></div>{room.players.map((p) => <div key={p.id} className="grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem] items-center border-t border-slate-100 px-3 py-2 text-xs"><span className="truncate font-black">{p.name}{p.id === identity?.playerId ? " (you)" : ""}</span><span className="text-[10px] font-bold text-emerald-700">✓ Ready</span><span className="text-[10px] font-bold text-slate-500">{p.isHost ? "Host" : p.isManual ? "Host phone" : "Own phone"}</span></div>)}</div>
+        <div className="overflow-hidden rounded-xl border border-slate-200"><div className="grid grid-cols-[minmax(0,1fr)_4.5rem_5.5rem] bg-slate-100 px-3 py-1.5 text-[9px] font-black uppercase text-slate-500"><span>Name</span><span>Status</span><span>Plays on</span></div>{room.players.map((p) => <div key={p.id} className="grid grid-cols-[minmax(0,1fr)_4.5rem_5.5rem] items-center border-t border-slate-100 px-3 py-2 text-xs"><span className="truncate font-black">{p.name}{p.id === identity?.playerId ? " (you)" : ""}</span><span className="text-[10px] font-bold text-emerald-700">✓ Ready</span><span className="flex items-center justify-between text-[10px] font-bold text-slate-500"><span>{p.isHost ? "Host" : p.isManual ? "Host phone" : "Own phone"}</span>{isHost && !p.isHost && <button type="button" aria-label={`Remove ${p.name}`} onClick={() => { if (window.confirm(`Remove ${p.name} from this lobby?`)) void changeLobby({ type: "remove", playerId: p.id }); }} className="min-h-7 min-w-7 text-red-600">×</button>}</span></div>)}</div>
       </section>
 
-      {!me && room.status === "lobby" && <div className="flex gap-2"><input value={joinName} onChange={(e) => setJoinName(e.target.value)} placeholder="Your name" className="min-h-11 min-w-0 flex-1 rounded-xl border-2 border-slate-200 px-3 font-semibold" /><button onClick={join} disabled={!joinName.trim()} className="rounded-xl bg-kringle-cranberry px-4 text-sm font-black text-white disabled:opacity-40">Join</button></div>}
+      {!me && room.status === "lobby" && <div className="flex gap-2"><input value={joinName} onChange={(e) => setJoinName(e.target.value)} placeholder={room.lobby_locked ? "Joining is closed" : "Your name"} disabled={room.lobby_locked} className="min-h-11 min-w-0 flex-1 rounded-xl border-2 border-slate-200 px-3 font-semibold disabled:bg-slate-100" /><button onClick={join} disabled={!joinName.trim() || room.lobby_locked} className="rounded-xl bg-kringle-cranberry px-4 text-sm font-black text-white disabled:opacity-40">{room.lobby_locked ? "Locked" : "Join"}</button></div>}
       {isHost && room.status === "lobby" && <div className="flex gap-2"><input value={manualName} onChange={(e) => setManualName(e.target.value)} placeholder="Add someone without a phone" className="min-h-10 min-w-0 flex-1 rounded-xl border-2 border-slate-200 px-3 text-sm font-semibold" /><button onClick={addManual} disabled={!manualName.trim()} className="rounded-xl border-2 border-kringle-spruce px-3 text-xs font-black text-kringle-spruce disabled:opacity-40">+ Add</button></div>}
+      {isHost && room.status === "lobby" && <button type="button" onClick={() => void changeLobby({ type: "lock", locked: !room.lobby_locked })} className="min-h-10 w-full rounded-xl border-2 border-slate-200 text-xs font-black text-slate-700">{room.lobby_locked ? "Open joining · Locked" : "Close joining · Anyone with the code can join"}</button>}
       {isHost && room.status === "lobby" && <div className="sticky bottom-3 z-20 -mx-1 rounded-2xl bg-white/95 p-1 shadow-[0_-8px_24px_rgba(255,255,255,.95)] backdrop-blur"><button onClick={drawNames} disabled={room.players.length < 2 || pending} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-kringle-cranberry text-lg font-black text-white shadow-[3px_3px_0_#000] disabled:opacity-40"><GeneratedIcon name="draw-names" className="h-8 w-8" />{pending ? "Mixing the magic…" : room.players.length < 2 ? "Invite at least 1 player" : `Draw names (${room.players.length})`}</button></div>}
       {room.status === "active" && me && <div className="space-y-2"><button onClick={() => reveal()} className="min-h-14 w-full rounded-2xl border-4 border-dashed border-kringle-cranberry text-lg font-black text-kringle-cranberry">Reveal my match</button>{isHost && room.players.filter((p) => p.isManual).map((p) => <button key={p.id} onClick={() => reveal(p.id)} className="min-h-10 w-full rounded-xl border-2 border-slate-200 text-sm font-bold">Reveal for {p.name}</button>)}</div>}
       {message && <p className="text-center text-sm font-bold text-kringle-spruce">{message}</p>}

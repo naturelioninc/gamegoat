@@ -11,7 +11,7 @@ import {
   giftOwnedBy,
 } from "@/lib/engine/engine";
 import type { GameState, GameActionInput } from "@/lib/engine/types";
-import { joinRoom, startGame, performRoomAction, recoverHostSession, addManualPlayers } from "../actions";
+import { joinRoom, startGame, performRoomAction, recoverHostSession, addManualPlayers, updateLobby } from "../actions";
 import { GeneratedIcon } from "@/components/GeneratedIcon";
 import { upsertGameHistory } from "@/lib/game-history";
 
@@ -39,6 +39,7 @@ interface GameRoom {
   players: RoomPlayer[];
   state: GameState | null;
   rules: Record<string, unknown>;
+  lobby_locked?: boolean;
 }
 
 type ConnectionState = "connecting" | "connected" | "reconnecting" | "offline";
@@ -77,12 +78,14 @@ function LobbyView({
   onJoin,
   onStart,
   onAddManual,
+  onLobbyChange,
 }: {
   room: GameRoom;
   myPlayerId: string | null;
   onJoin: (name: string) => Promise<void>;
   onStart: () => Promise<void>;
   onAddManual: (name: string) => Promise<void>;
+  onLobbyChange: (change: { type: "lock"; locked: boolean } | { type: "remove"; playerId: string }) => Promise<void>;
 }) {
   const [name, setName] = useState("");
   const [joining, setJoining] = useState(false);
@@ -256,7 +259,7 @@ function LobbyView({
                   <span className={`h-1.5 w-1.5 rounded-full ${p.isManual ? "bg-slate-300" : "bg-emerald-500"}`} />
                   {p.isManual ? "Added" : "Joined"}
                 </span>
-                <span className="truncate text-[10px] font-bold text-slate-500">{p.isHost ? "Host" : p.isManual ? "Host phone" : "Own phone"}</span>
+                <span className="flex items-center justify-between gap-1 text-[10px] font-bold text-slate-500"><span className="truncate">{p.isHost ? "Host" : p.isManual ? "Host phone" : "Own phone"}</span>{isHost && !p.isHost && <button type="button" aria-label={`Remove ${p.name}`} onClick={() => { if (window.confirm(`Remove ${p.name} from this lobby?`)) void onLobbyChange({ type: "remove", playerId: p.id }); }} className="min-h-7 min-w-7 rounded-lg text-red-600">×</button>}</span>
               </li>
             ))}
             </ul>
@@ -292,6 +295,7 @@ function LobbyView({
             </button>
           </form>
         )}
+        {isHost && <button type="button" onClick={() => void onLobbyChange({ type: "lock", locked: !room.lobby_locked })} className="min-h-10 w-full rounded-xl border-2 border-slate-200 text-xs font-black text-slate-700">{room.lobby_locked ? "Open joining" : "Close joining"} · {room.lobby_locked ? "Locked" : "Anyone with the code can join"}</button>}
         {err && isHost && <p className="text-xs font-semibold text-red-600">{err}</p>}
       </section>
 
@@ -310,10 +314,10 @@ function LobbyView({
           {err && <p className="text-sm font-semibold text-red-600">{err}</p>}
           <button
             type="submit"
-            disabled={!name.trim() || joining}
+            disabled={!name.trim() || joining || room.lobby_locked}
             className="min-h-12 w-full rounded-2xl bg-kringle-cranberry font-bold text-white disabled:opacity-40"
           >
-            {joining ? "Joining…" : "Join game"}
+            {room.lobby_locked ? "Joining is closed" : joining ? "Joining…" : "Join game"}
           </button>
         </form>
       )}
@@ -1339,6 +1343,12 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
     if (!result.ok) throw new Error(result.error || "Could not add player");
   }
 
+  async function handleLobbyChange(change: { type: "lock"; locked: boolean } | { type: "remove"; playerId: string }) {
+    if (!myPlayerId || !myPlayerToken) throw new Error("Host controls are required");
+    const result = await updateLobby(room.code, myPlayerId, myPlayerToken, change);
+    if (!result.ok) setSessionError(result.error || "Could not update the lobby");
+  }
+
   function handleAction(action: GameActionInput) {
     if (connectionState === "offline") {
       setSessionError("You're offline — reconnect before making a move");
@@ -1436,6 +1446,7 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
           onJoin={handleJoin}
           onStart={handleStart}
           onAddManual={handleAddManual}
+          onLobbyChange={handleLobbyChange}
         />
       ) : myPlayerId ? (
         <GameBoard

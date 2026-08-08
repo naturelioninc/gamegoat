@@ -246,6 +246,34 @@ export async function addManualPlayers(
   return { ok: true };
 }
 
+export async function updateLobby(
+  code: string,
+  actorPlayerId: string,
+  playerToken: string,
+  change: { type: "lock"; locked: boolean } | { type: "remove"; playerId: string },
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = createSupabaseServiceClient();
+  const { data: room } = await supabase.from("game_rooms")
+    .select("id, players, status").eq("code", code.toUpperCase()).gt("expires_at", new Date().toISOString()).maybeSingle();
+  if (!room) return { ok: false, error: "Room not found or expired" };
+  if (room.status !== "lobby") return { ok: false, error: "Lobby controls close after the game starts" };
+  if (!(await hasPlayerSession(room.id, actorPlayerId, playerToken))) return { ok: false, error: "Host session expired" };
+  const players = room.players as Array<{ id: string; name: string; isHost?: boolean }>;
+  if (!players.find((player) => player.id === actorPlayerId)?.isHost) return { ok: false, error: "Only the host can manage the lobby" };
+
+  if (change.type === "lock") {
+    const { error } = await supabase.from("game_rooms").update({ lobby_locked: change.locked, last_active_at: new Date().toISOString() }).eq("id", room.id);
+    return error ? { ok: false, error: error.message } : { ok: true };
+  }
+  const target = players.find((player) => player.id === change.playerId);
+  if (!target || target.isHost) return { ok: false, error: "That player cannot be removed" };
+  const { error } = await supabase.from("game_rooms").update({ players: players.filter((player) => player.id !== change.playerId), last_active_at: new Date().toISOString() }).eq("id", room.id);
+  if (error) return { ok: false, error: error.message };
+  await supabase.from("game_room_player_sessions").delete().eq("room_id", room.id).eq("player_id", change.playerId);
+  await supabase.from("game_room_memberships").delete().eq("room_id", room.id).eq("player_id", change.playerId);
+  return { ok: true };
+}
+
 export async function performRoomAction(
   code: string,
   action: GameActionInput,
