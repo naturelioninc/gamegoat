@@ -9,6 +9,7 @@ import { Snowfall } from "./fx/Snowfall";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const isLiveRoom = /\/(kris-kringle|secret-santa)\/room\//.test(pathname);
   const [menuOpen, setMenuOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -54,7 +55,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      <div className="flex-1 pb-20 sm:pb-0">{children}</div>
+      <div className={`flex-1 ${isLiveRoom ? "pb-4" : "pb-20 sm:pb-0"}`}>{children}</div>
 
       <BottomNav onPlayClick={openPicker} />
 

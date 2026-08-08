@@ -9,18 +9,18 @@ export const metadata: Metadata = {
 
 export default function SecretSantaPage() {
   return (
-    <main className="mx-auto max-w-2xl space-y-8 px-5 py-10 sm:py-14">
-      <header className="space-y-2">
-        <p className="text-sm font-bold uppercase tracking-[0.16em] text-kringle-cranberry">
+    <main className="mx-auto max-w-2xl space-y-4 px-5 py-4 sm:space-y-8 sm:py-14">
+      <header className="space-y-0.5 sm:space-y-2">
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-kringle-cranberry sm:text-sm">
           Main event
         </p>
-        <h1 className="text-4xl font-extrabold tracking-tight">Secret Santa</h1>
-        <p className="text-slate-600">
+        <h1 className="text-2xl font-extrabold tracking-tight sm:text-4xl">Secret Santa</h1>
+        <p className="text-sm leading-snug text-slate-600 sm:text-base">
           Draw names, reveal privately, keep it secret until gift day
         </p>
       </header>
 
-      <div className="rounded-3xl border-2 border-black bg-white p-6 shadow-[4px_4px_0_#000] sm:p-8">
+      <div className="rounded-3xl border-2 border-black bg-white p-4 shadow-[4px_4px_0_#000] sm:p-8">
         <SecretSantaGame />
       </div>
 

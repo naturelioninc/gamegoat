@@ -9,13 +9,13 @@ export const metadata: Metadata = {
 
 export default function CharadesPage() {
   return (
-    <main className="mx-auto max-w-2xl space-y-8 px-5 py-10 sm:py-14">
-      <header className="space-y-2">
-        <p className="text-sm font-bold uppercase tracking-[0.16em] text-kringle-spruce">
+    <main className="mx-auto max-w-2xl space-y-4 px-5 py-4 sm:space-y-8 sm:py-14">
+      <header className="space-y-0.5 sm:space-y-2">
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-kringle-spruce sm:text-sm">
           Party game
         </p>
-        <h1 className="text-4xl font-extrabold tracking-tight">Christmas Charades</h1>
-        <p className="text-slate-600">60 seconds · act it out · no words or sounds</p>
+        <h1 className="text-2xl font-extrabold tracking-tight sm:text-4xl">Christmas Charades</h1>
+        <p className="text-sm leading-snug text-slate-600 sm:text-base">60 seconds · act it out · no words or sounds</p>
       </header>
       <ChristmasCharadesGame />
     </main>

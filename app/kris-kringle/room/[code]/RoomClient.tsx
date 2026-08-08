@@ -11,8 +11,9 @@ import {
   giftOwnedBy,
 } from "@/lib/engine/engine";
 import type { GameState, GameActionInput } from "@/lib/engine/types";
-import { joinRoom, startGame, performRoomAction, recoverHostSession } from "../actions";
+import { joinRoom, startGame, performRoomAction, recoverHostSession, addManualPlayers } from "../actions";
 import { GeneratedIcon } from "@/components/GeneratedIcon";
+import { upsertGameHistory } from "@/lib/game-history";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -75,22 +76,24 @@ function LobbyView({
   myPlayerId,
   onJoin,
   onStart,
+  onAddManual,
 }: {
   room: GameRoom;
   myPlayerId: string | null;
   onJoin: (name: string) => Promise<void>;
   onStart: () => Promise<void>;
+  onAddManual: (name: string) => Promise<void>;
 }) {
   const [name, setName] = useState("");
   const [joining, setJoining] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [manualName, setManualName] = useState("");
+  const [addingManual, setAddingManual] = useState(false);
   const [err, setErr] = useState("");
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedMsg, setCopiedMsg] = useState(false);
-  const inviteUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/kris-kringle/room/${room.code}`
-      : "";
+  const [showQr, setShowQr] = useState(false);
+  const inviteUrl = `https://games.xmasgoat.com/kris-kringle/room/${room.code}`;
 
   const inviteText =
     `Join my Kris Kringle game right now! 🎁\n` +
@@ -163,76 +166,63 @@ function LobbyView({
   const canStart = room.players.length >= 2;
 
   return (
-    <div className="space-y-8">
-      <header className="space-y-2">
+    <div className="space-y-5">
+      <header className="flex items-end justify-between gap-3">
+        <div>
         <p className="text-sm font-bold uppercase tracking-[0.16em] text-kringle-cranberry">
           Online game
         </p>
-        <h1 className="text-4xl font-extrabold tracking-tight">Kris Kringle</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight">Kris Kringle</h1>
+        </div>
+        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">{room.players.length} here</span>
       </header>
 
       {/* Room code + QR + share */}
-      <div className="rounded-3xl border-2 border-kringle-spruce bg-kringle-spruce/5 p-6 text-center">
-        <p className="text-sm font-bold uppercase tracking-widest text-kringle-spruce">
-          Room code
-        </p>
-        <p className="mt-1 font-mono text-5xl font-black tracking-[0.2em] text-kringle-spruce">
+      <div className="rounded-2xl border-2 border-kringle-spruce bg-kringle-spruce/5 p-4 text-center">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-kringle-spruce">Invite code</p>
+        <p className="font-mono text-4xl font-black tracking-[0.16em] text-kringle-spruce">
           {room.code}
         </p>
 
         {/* QR code */}
-        {inviteUrl && (
-          <div className="mt-5 flex justify-center">
+        {showQr && inviteUrl && (
+          <div className="mt-3 flex justify-center">
             <div className="rounded-2xl bg-white p-3 shadow-sm">
               <QRCode
                 value={inviteUrl}
-                size={168}
+                size={144}
                 bgColor="#ffffff"
                 fgColor="#1a5c3a"
               />
             </div>
           </div>
         )}
-        <p className="mt-3 text-xs font-semibold text-kringle-spruce/70">
-          Scan to join on your own phone · or use the code above
-        </p>
-
-        {/* Share buttons */}
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <a
-            href={mailtoHref}
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-kringle-cranberry px-3 py-2 text-sm font-bold text-white"
-          >
-            📧 Email
-          </a>
+        <p className="mt-1 text-xs font-semibold text-kringle-spruce/70">Share once, then manage players below.</p>
+        <div className="mt-3 grid grid-cols-3 gap-2">
           <button
             type="button"
             onClick={handleShare}
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-kringle-spruce px-3 py-2 text-sm font-bold text-white"
+            className="inline-flex min-h-10 items-center justify-center gap-1 rounded-xl bg-kringle-spruce px-2 text-xs font-black text-white"
           >
-            📤 Share
+            Share
           </button>
           <button
             type="button"
-            onClick={handleCopyMsg}
-            className={`inline-flex items-center justify-center gap-1.5 rounded-xl border-2 px-3 py-2 text-sm font-bold transition ${
-              copiedMsg
-                ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                : "border-kringle-spruce text-kringle-spruce"
-            }`}
+            onClick={() => setShowQr((value) => !value)}
+            className="inline-flex min-h-10 items-center justify-center rounded-xl border-2 border-kringle-spruce px-2 text-xs font-black text-kringle-spruce"
           >
-            {copiedMsg ? "✓ Copied!" : "💬 Copy msg"}
+            {showQr ? "Hide QR" : "Show QR"}
           </button>
           <button
             type="button"
             onClick={handleCopyLink}
-            className={`inline-flex items-center justify-center gap-1.5 rounded-xl border-2 px-3 py-2 text-sm font-bold transition ${
+            className={`inline-flex min-h-10 items-center justify-center rounded-xl border-2 px-2 text-xs font-black transition ${
               copiedLink
                 ? "border-emerald-500 bg-emerald-50 text-emerald-700"
                 : "border-kringle-spruce text-kringle-spruce"
             }`}
           >
-            {copiedLink ? "✓ Link copied!" : "🔗 Copy link"}
+            {copiedLink ? "Copied ✓" : "Copy link"}
           </button>
         </div>
       </div>
@@ -240,45 +230,69 @@ function LobbyView({
       {/* Player list */}
       <section className="space-y-3">
         <h2 className="text-lg font-black">
-          Players waiting ({room.players.length})
+          Players <span className="text-sm text-slate-400">({room.players.length})</span>
         </h2>
         {room.players.length === 0 ? (
           <p className="text-sm text-slate-500">
             No one yet — share the room code!
           </p>
         ) : (
-          <ul className="space-y-2">
+          <div className="overflow-hidden rounded-2xl border border-slate-200">
+            <div className="grid grid-cols-[minmax(0,1fr)_4.5rem_4rem] gap-2 bg-slate-100 px-3 py-1.5 text-[9px] font-black uppercase tracking-wide text-slate-500">
+              <span>Player</span><span>Status</span><span>Role</span>
+            </div>
+            <ul className="divide-y divide-slate-100">
             {room.players.map((p) => (
               <li
                 key={p.id}
-                className={`flex items-center gap-3 rounded-2xl border-2 px-4 py-3 text-sm font-semibold ${
+                className={`grid min-w-0 grid-cols-[minmax(0,1fr)_4.5rem_4rem] items-center gap-2 px-3 py-2 text-xs font-semibold ${
                   p.id === myPlayerId
-                    ? "border-kringle-spruce bg-kringle-spruce/5"
-                    : "border-slate-200"
+                    ? "bg-kringle-spruce/5"
+                    : "bg-white"
                 }`}
               >
-                <span
-                  className={`h-2 w-2 flex-shrink-0 rounded-full ${p.isManual ? "bg-slate-300" : "bg-sky-400"}`}
-                  title={p.isManual ? "Added by host" : "Joined by phone"}
-                />
-                {p.name}
-                {p.isHost && (
-                  <span className="ml-auto rounded-full bg-kringle-gold/20 px-2 py-0.5 text-xs font-bold text-amber-800">
-                    host
-                  </span>
-                )}
-                {p.isManual && (
-                  <span className="ml-auto text-xs text-slate-400">
-                    host controls
-                  </span>
-                )}
-                {p.id === myPlayerId && !p.isHost && !p.isManual && (
-                  <span className="ml-auto text-xs text-slate-500">you</span>
-                )}
+                <span className="truncate font-black">{p.name}{p.id === myPlayerId ? " (you)" : ""}</span>
+                <span className={`flex items-center gap-1 text-[10px] font-bold ${p.isManual ? "text-slate-400" : "text-emerald-700"}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${p.isManual ? "bg-slate-300" : "bg-emerald-500"}`} />
+                  {p.isManual ? "Added" : "Joined"}
+                </span>
+                <span className="truncate text-[10px] font-bold text-slate-500">{p.isHost ? "Host" : p.isManual ? "Host phone" : "Own phone"}</span>
               </li>
             ))}
-          </ul>
+            </ul>
+          </div>
         )}
+        {isHost && (
+          <form
+            className="flex gap-2"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!manualName.trim()) return;
+              setAddingManual(true);
+              setErr("");
+              try {
+                await onAddManual(manualName.trim());
+                setManualName("");
+              } catch (e: unknown) {
+                setErr(e instanceof Error ? e.message : "Could not add player");
+              } finally {
+                setAddingManual(false);
+              }
+            }}
+          >
+            <input
+              value={manualName}
+              onChange={(e) => setManualName(e.target.value)}
+              maxLength={30}
+              placeholder="Add someone without a phone"
+              className="min-h-10 min-w-0 flex-1 rounded-xl border-2 border-slate-200 px-3 text-sm font-semibold focus:border-kringle-spruce focus:outline-none"
+            />
+            <button disabled={!manualName.trim() || addingManual} className="min-h-10 shrink-0 rounded-xl border-2 border-kringle-spruce px-3 text-xs font-black text-kringle-spruce disabled:opacity-40">
+              {addingManual ? "Adding…" : "+ Add"}
+            </button>
+          </form>
+        )}
+        {err && isHost && <p className="text-xs font-semibold text-red-600">{err}</p>}
       </section>
 
       {/* Join form (only shown if not yet in the room) */}
@@ -306,7 +320,7 @@ function LobbyView({
 
       {/* Start game (shown when in room and enough players) */}
       {isHost && (
-        <div className="space-y-2">
+        <div className="sticky bottom-3 z-20 -mx-2 space-y-2 rounded-2xl bg-white/95 p-2 shadow-[0_-8px_24px_rgba(255,255,255,.95)] backdrop-blur">
           <button
             type="button"
             onClick={handleStart}
@@ -1062,7 +1076,7 @@ function GameBoard({
                   ))}
                 </div>
               )}
-              <div className="flex gap-2 pt-1">
+              {isHostDevice && <div className="flex gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => act({ type: "pause" })}
@@ -1086,7 +1100,7 @@ function GameBoard({
                 >
                   End game
                 </button>
-              </div>
+              </div>}
             </>
           )}
         </div>
@@ -1188,9 +1202,9 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
   const [myPlayerToken, setMyPlayerToken] = useState<string | null>(null);
   const [sessionError, setSessionError] = useState("");
   const [recoveringHost, setRecoveringHost] = useState(false);
-  const [connectionState, setConnectionState] = useState<ConnectionState>(
-    typeof navigator !== "undefined" && !navigator.onLine ? "offline" : "connecting",
-  );
+  // Keep the server and first browser render identical; the subscription effect
+  // immediately resolves the real online/offline state after hydration.
+  const [connectionState, setConnectionState] = useState<ConnectionState>("connecting");
   const supabaseRef = useRef(createSupabaseBrowserClient());
 
   // Load player identity from localStorage
@@ -1202,6 +1216,24 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
       if (!stored.playerToken) setSessionError("This room was created before secure reconnects were enabled. Rejoin with a new name if the game has not started.");
     }
   }, [room.code]);
+
+  useEffect(() => {
+    if (!myPlayerId || !myPlayerToken) return;
+    const me = room.players.find((player) => player.id === myPlayerId);
+    if (!me) return;
+    const complete = room.status === "complete" || room.state?.status === "complete" || room.state?.phase === "complete";
+    upsertGameHistory({
+      code: room.code,
+      gameType: "kris_kringle",
+      playerId: myPlayerId,
+      playerToken: myPlayerToken,
+      playerName: me.name,
+      role: me.isHost ? "host" : "participant",
+      status: complete ? "complete" : room.status === "lobby" ? "lobby" : "active",
+      playerCount: room.players.length,
+      ...(complete ? { completedAt: new Date().toISOString() } : {}),
+    });
+  }, [room, myPlayerId, myPlayerToken]);
 
   // Subscribe to Realtime changes
   useEffect(() => {
@@ -1287,6 +1319,7 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
     const result = await joinRoom(room.code, playerName);
     if (!result.ok) throw new Error(result.error);
     storePlayer(room.code, result.playerId, playerName, result.playerToken);
+    upsertGameHistory({ code: room.code, gameType: "kris_kringle", playerId: result.playerId, playerToken: result.playerToken, playerName, role: "participant", status: "lobby", playerCount: room.players.length + 1 });
     setMyPlayerId(result.playerId);
     setMyPlayerToken(result.playerToken);
     setSessionError("");
@@ -1297,6 +1330,13 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
     if (!myPlayerId || !myPlayerToken) throw new Error("Join the room first");
     const result = await startGame(room.code, myPlayerId, myPlayerToken);
     if (!result.ok) throw new Error(result.error);
+  }
+
+  async function handleAddManual(playerName: string) {
+    if (connectionState === "offline") throw new Error("You're offline — reconnect before adding players");
+    if (!myPlayerId || !myPlayerToken) throw new Error("Host controls are required");
+    const result = await addManualPlayers(room.code, [playerName], myPlayerId, myPlayerToken);
+    if (!result.ok) throw new Error(result.error || "Could not add player");
   }
 
   function handleAction(action: GameActionInput) {
@@ -1376,7 +1416,7 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
           {sessionError}
         </p>
       )}
-      {!isHostDevice && (
+      {!myPlayerId && (
         <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
           <p className="text-xs font-semibold text-slate-600">Hosting on another device?</p>
           <button
@@ -1395,8 +1435,9 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
           myPlayerId={myPlayerId}
           onJoin={handleJoin}
           onStart={handleStart}
+          onAddManual={handleAddManual}
         />
-      ) : isHostDevice ? (
+      ) : myPlayerId ? (
         <GameBoard
           room={room}
           myPlayerId={myPlayerId}

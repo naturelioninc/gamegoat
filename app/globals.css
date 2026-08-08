@@ -8,6 +8,8 @@
   }
   body {
     background-color: #fffdf7;
+    min-width: 0;
+    overflow-x: hidden;
   }
   ::selection {
     background: #f8df92;
@@ -20,6 +22,38 @@
   input[type="radio"] {
     min-width: 24px;
     min-height: 24px;
+  }
+}
+
+/* The installed app gets a compact shell while the public website keeps its SEO content. */
+.native-app .site-footer,
+.native-app .app-web-extra {
+  display: none;
+}
+.native-app body {
+  overscroll-behavior: none;
+}
+.native-app,
+.native-app body {
+  height: 100%;
+}
+.native-app .app-home {
+  padding-top: 0.75rem;
+  padding-bottom: calc(5.25rem + env(safe-area-inset-bottom));
+}
+.native-app .app-header {
+  top: 0;
+}
+
+table {
+  max-width: 100%;
+}
+@media (max-width: 639px) {
+  .table-scroll {
+    margin-inline: -1rem;
+    overflow-x: auto;
+    padding-inline: 1rem;
+    -webkit-overflow-scrolling: touch;
   }
 }
 

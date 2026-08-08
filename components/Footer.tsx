@@ -1,8 +1,13 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export function Footer() {
+  const pathname = usePathname();
+  if (/\/(kris-kringle|secret-santa)\/room\//.test(pathname)) return null;
   return (
-    <footer className="mt-16 border-t-2 border-black bg-black text-white">
+    <footer className="site-footer mt-16 border-t-2 border-black bg-black text-white">
       <div className="mx-auto max-w-6xl space-y-5 px-5 py-10 text-sm text-white/75 sm:px-8">
         <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-2">
           <Link href="/kris-kringle" className="hover:text-kringle-gold">Kris Kringle</Link>

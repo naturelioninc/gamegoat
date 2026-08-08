@@ -25,3 +25,7 @@ next-env.d.ts
 releases/*.apk
 releases/*.aab
 releases/*.pem
+
+# local QA output and Supabase CLI state
+artifacts/
+supabase/.temp/

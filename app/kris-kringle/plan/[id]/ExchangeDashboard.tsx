@@ -24,6 +24,13 @@ function formatBudget(cents: number | null): string {
   return `$${(cents / 100).toFixed(0)}`;
 }
 
+function formatJoined(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("en-CA", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Invite panel
 // ---------------------------------------------------------------------------
@@ -264,7 +271,7 @@ export function ExchangeDashboard({ exchange: initial }: { exchange: Exchange })
       <InvitePanel exchange={exchange} />
 
       {/* Participants */}
-      <section className="rounded-3xl border-2 border-black bg-white p-6 shadow-[4px_4px_0_#000] space-y-4">
+      <section className="space-y-3 rounded-3xl border-2 border-black bg-white p-4 shadow-[4px_4px_0_#000] sm:p-6">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-black">
             Participants{" "}
@@ -282,33 +289,37 @@ export function ExchangeDashboard({ exchange: initial }: { exchange: Exchange })
             No one yet — share the invite above and they&apos;ll appear here.
           </p>
         ) : (
-          <ul className="space-y-2">
+          <div className="overflow-hidden rounded-2xl border border-slate-200">
+            <div className="grid grid-cols-[minmax(0,1fr)_3.4rem_3.4rem_2.8rem] gap-1 bg-slate-100 px-3 py-1.5 text-[9px] font-black uppercase tracking-wide text-slate-500 sm:grid-cols-[minmax(0,1fr)_5rem_5rem_4rem] sm:text-[10px]">
+              <span>Name</span>
+              <span>Joined</span>
+              <span>List</span>
+              <span>Draw</span>
+            </div>
+            <ul className="divide-y divide-slate-100">
             {exchange.participants.map((p) => {
               const hasWishList = p.wish_list && p.wish_list.length > 0;
               return (
                 <li
                   key={p.id}
-                  className="flex items-center justify-between rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-3"
+                  className="grid min-w-0 grid-cols-[minmax(0,1fr)_3.4rem_3.4rem_2.8rem] items-center gap-1 px-3 py-2 text-xs sm:grid-cols-[minmax(0,1fr)_5rem_5rem_4rem]"
                 >
-                  <div>
-                    <p className="font-black text-slate-900">{p.name}</p>
-                    <p className="text-xs text-slate-500">{p.email}</p>
+                  <div className="min-w-0">
+                    <p className="truncate font-black text-slate-900">{p.name}</p>
+                    <p className="truncate text-[10px] text-slate-400">{p.email}</p>
                   </div>
-                  <span
-                    className={`rounded-xl px-3 py-1 text-xs font-bold ${
-                      hasWishList
-                        ? "bg-green-100 text-green-800"
-                        : "bg-slate-200 text-slate-600"
-                    }`}
-                  >
-                    {hasWishList
-                      ? `✓ ${p.wish_list.length} item${p.wish_list.length !== 1 ? "s" : ""}`
-                      : "No wish list"}
+                  <span className="whitespace-nowrap text-[10px] font-semibold text-slate-500">{formatJoined(p.joined_at)}</span>
+                  <span className={`whitespace-nowrap text-[10px] font-bold ${hasWishList ? "text-emerald-700" : "text-slate-400"}`}>
+                    {hasWishList ? `${p.wish_list.length} idea${p.wish_list.length === 1 ? "" : "s"}` : "None"}
+                  </span>
+                  <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black ${p.secret_santa_for ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`} aria-label={p.secret_santa_for ? "Name drawn" : "Not drawn"}>
+                    {p.secret_santa_for ? "✓" : "—"}
                   </span>
                 </li>
               );
             })}
-          </ul>
+            </ul>
+          </div>
         )}
       </section>
 

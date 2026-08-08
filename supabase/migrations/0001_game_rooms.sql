@@ -19,19 +19,19 @@ create table if not exists game_rooms (
 create or replace function generate_room_code() returns text language plpgsql as $$
 declare
   chars text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  code text := '';
+  generated_code text := '';
   attempts int := 0;
 begin
   loop
-    code := '';
+    generated_code := '';
     for i in 1..6 loop
-      code := code || substr(chars, floor(random() * length(chars) + 1)::int, 1);
+      generated_code := generated_code || substr(chars, floor(random() * length(chars) + 1)::int, 1);
     end loop;
     attempts := attempts + 1;
-    exit when not exists (select 1 from game_rooms where game_rooms.code = code);
+    exit when not exists (select 1 from game_rooms where game_rooms.code = generated_code);
     if attempts > 20 then raise exception 'Could not generate unique room code'; end if;
   end loop;
-  return code;
+  return generated_code;
 end;
 $$;
 

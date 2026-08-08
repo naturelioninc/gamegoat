@@ -15,6 +15,11 @@ function newPlayerToken() {
   return randomBytes(32).toString("base64url");
 }
 
+function newRoomCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  return Array.from(randomBytes(6), (byte) => chars[byte % chars.length]).join("");
+}
+
 function hashPlayerToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
@@ -48,6 +53,7 @@ export async function createRoom(
   const { data, error } = await supabase
     .from("game_rooms")
     .insert({
+      code: newRoomCode(),
       game_type: "kris_kringle",
       rules,
       players: [{ id: playerId, name: hostName.trim(), isHost: true }],

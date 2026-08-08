@@ -103,10 +103,10 @@ export function Header({ menuOpen, onMenuToggle, onPlayClick }: Props) {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b-2 border-black bg-[#fffdf7]/95 backdrop-blur">
+    <header className="app-header sticky top-0 z-40 border-b-2 border-black bg-[#fffdf7]/95 pt-[env(safe-area-inset-top)] backdrop-blur">
       <div
         ref={menuRef}
-        className="relative mx-auto flex h-16 max-w-6xl items-center justify-between px-3 sm:px-6"
+        className="relative mx-auto flex h-14 max-w-6xl items-center justify-between px-3 sm:h-16 sm:px-6"
       >
         {/* Menu trigger */}
         <button
@@ -279,11 +279,9 @@ export function Header({ menuOpen, onMenuToggle, onPlayClick }: Props) {
             <div className="flex flex-wrap items-center justify-between gap-2 border-t-2 border-black bg-black px-5 py-3 text-xs font-semibold text-white">
               <p>Make Christmas legendary.</p>
               <div className="flex gap-4 sm:hidden">
-                <a href="https://xmasgoat.com" className="underline">
-                  XmasGoat.com
-                </a>
-                <a href="https://party.xmasgoat.com" className="underline">
-                  Party Goat
+                <Link href="/my-games" onClick={close} className="underline">My Games</Link>
+                <a href="https://account.xmasgoat.com" className="underline">
+                  My Account
                 </a>
               </div>
             </div>

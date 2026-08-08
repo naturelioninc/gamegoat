@@ -4,48 +4,28 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { RULE_PRESETS } from "@/lib/engine/types";
 import type { GameRules } from "@/lib/engine/types";
-import { createRoom, addManualPlayers } from "@/app/kris-kringle/room/actions";
+import { createRoom } from "@/app/kris-kringle/room/actions";
 import { GeneratedIcon } from "@/components/GeneratedIcon";
+import { upsertGameHistory } from "@/lib/game-history";
 
 export function KrisKringleGame() {
+  const [step, setStep] = useState(0);
   const [hostName, setHostName] = useState("");
-  const [extraNames, setExtraNames] = useState<string[]>([]);
-  const [newName, setNewName] = useState("");
   const [preset, setPreset] = useState<keyof typeof RULE_PRESETS>("classic");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const allNames = [hostName.trim(), ...extraNames].filter(Boolean);
-  const hasDuplicates =
-    new Set(allNames.map((n) => n.toLowerCase())).size < allNames.length;
-
-  function addExtra() {
-    const trimmed = newName.trim();
-    if (!trimmed) return;
-    setExtraNames((prev) => [...prev, trimmed]);
-    setNewName("");
-  }
-
-  function removeExtra(i: number) {
-    setExtraNames((prev) => prev.filter((_, j) => j !== i));
-  }
-
   function handleCreate() {
-    if (!hostName.trim() || hasDuplicates || pending) return;
+    if (!hostName.trim() || pending) return;
     setError("");
     startTransition(async () => {
       try {
         const { code, playerId, playerToken } = await createRoom(hostName.trim(), preset);
         try {
-          localStorage.setItem(
-            `kk_player_${code}`,
-            JSON.stringify({ playerId, playerName: hostName.trim(), playerToken }),
-          );
+          localStorage.setItem(`kk_player_${code}`, JSON.stringify({ playerId, playerName: hostName.trim(), playerToken }));
+          upsertGameHistory({ code, gameType: "kris_kringle", playerId, playerToken, playerName: hostName.trim(), role: "host", status: "lobby", playerCount: 1 });
         } catch {}
-        if (extraNames.length > 0) {
-          await addManualPlayers(code, extraNames, playerId, playerToken);
-        }
         router.push(`/kris-kringle/room/${code}`);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : "Could not create room");
@@ -54,175 +34,47 @@ export function KrisKringleGame() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Intro */}
-      <div className="rounded-2xl border-2 border-kringle-spruce/30 bg-kringle-spruce/5 p-4">
-        <p className="font-bold text-kringle-spruce">One room, every phone.</p>
-        <p className="mt-1 text-sm text-kringle-spruce/80">
-          Add names for people without phones, then share the QR code so
-          everyone else can join on their own device. No mode to pick — it just
-          works.
-        </p>
+    <div className="space-y-5">
+      <div className="space-y-2" aria-label={`Setup step ${step + 1} of 3`}>
+        <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-400"><span>Game setup</span><span>{step + 1} / 3</span></div>
+        <div className="grid grid-cols-3 gap-1.5">{[0, 1, 2].map((n) => <span key={n} className={`h-2 rounded-full transition-all ${n <= step ? "bg-kringle-cranberry" : "bg-slate-200"}`} />)}</div>
       </div>
 
-      {/* Host name */}
-      <section className="space-y-3">
-        <h2 className="flex items-center gap-2 text-xl font-black">
-          <GeneratedIcon name="players" className="h-8 w-8" /> Your name
-        </h2>
-        <input
-          type="text"
-          value={hostName}
-          onChange={(e) => setHostName(e.target.value)}
-          placeholder="Your name (e.g. Sarah)"
-          maxLength={30}
-          className="min-h-12 w-full rounded-2xl border-2 border-slate-200 px-4 font-semibold focus:border-kringle-spruce focus:outline-none"
-          onKeyDown={(e) => {
-            if (e.key === "Enter")
-              document.getElementById("add-player-input")?.focus();
-          }}
-        />
-      </section>
+      {step === 0 && (
+        <section className="animate-kk-slide-up space-y-4 text-center">
+          <GeneratedIcon name="players" size="lg" className="mx-auto h-24 w-24 animate-kk-pop-in" />
+          <div><p className="text-xs font-black uppercase tracking-widest text-kringle-cranberry">First things first</p><h2 className="mt-1 text-2xl font-black">Who&apos;s hosting?</h2><p className="mt-1 text-sm text-slate-500">You&apos;ll invite everyone from your new game room.</p></div>
+          <input autoFocus type="text" value={hostName} onChange={(e) => setHostName(e.target.value)} placeholder="Your name (e.g. Sarah)" maxLength={30} className="min-h-12 w-full rounded-2xl border-2 border-slate-200 px-4 font-semibold focus:border-kringle-spruce focus:outline-none" onKeyDown={(e) => { if (e.key === "Enter" && hostName.trim()) setStep(1); }} />
+          <button type="button" onClick={() => setStep(1)} disabled={!hostName.trim()} className="min-h-12 w-full rounded-2xl bg-kringle-cranberry font-black text-white shadow-[3px_3px_0_#000] disabled:opacity-40">That&apos;s me — next →</button>
+        </section>
+      )}
 
-      {/* Other players */}
-      <section className="space-y-3">
-        <h2 className="text-xl font-black">Other players</h2>
-        <p className="text-sm text-slate-500">
-          No phone? Add their name — you control their turns. Got a phone? They
-          scan the QR in the lobby.
-        </p>
-
-        {extraNames.length > 0 && (
-          <ul className="space-y-2">
-            {extraNames.map((name, i) => (
-              <li key={i} className="flex items-center gap-2">
-                <span className="flex-1 rounded-2xl border-2 border-slate-200 bg-white px-4 py-3 text-sm font-semibold">
-                  {name}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => removeExtra(i)}
-                  aria-label={`Remove ${name}`}
-                  className="min-h-12 min-w-12 rounded-2xl border-2 border-slate-200 text-slate-400 hover:border-red-300 hover:text-red-500"
-                >
-                  ×
-                </button>
-              </li>
+      {step === 1 && (
+        <section className="animate-kk-slide-up space-y-3">
+          <div className="text-center"><GeneratedIcon name="tools" className="mx-auto h-16 w-16 animate-kk-pop-in" /><p className="text-xs font-black uppercase tracking-widest text-emerald-700">Host locked in ✓</p><h2 className="mt-1 text-2xl font-black">Choose your chaos level</h2><p className="text-sm text-slate-500">Classic is perfect for most groups.</p></div>
+          <div className="grid gap-2">
+            {(Object.entries(RULE_PRESETS) as [keyof typeof RULE_PRESETS, GameRules][]).map(([key, rules]) => (
+              <label key={key} className={`flex cursor-pointer items-start gap-3 rounded-2xl border-2 p-3 transition ${preset === key ? "border-kringle-spruce bg-kringle-spruce/5" : "border-slate-200"}`}>
+                <input type="radio" name="preset" value={key} checked={preset === key} onChange={() => setPreset(key)} className="mt-0.5" />
+                <div><p className="font-black capitalize">{key}</p><p className="text-xs text-slate-600">{rules.maxSteals} steal{rules.maxSteals !== 1 ? "s" : ""} · {rules.allowImmediateStealback ? "Steal-back" : "No steal-back"} · {rules.firstPlayerFinalTurn ? "Final turn" : "No final turn"}</p></div>
+              </label>
             ))}
-          </ul>
-        )}
+          </div>
+          <div className="grid grid-cols-2 gap-2 pt-2"><button type="button" onClick={() => setStep(0)} className="min-h-11 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-500">← Back</button><button type="button" onClick={() => setStep(2)} className="min-h-11 rounded-xl bg-kringle-cranberry text-sm font-black text-white">Lock it in →</button></div>
+        </section>
+      )}
 
-        <div className="flex gap-2">
-          <input
-            id="add-player-input"
-            type="text"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="Player name"
-            maxLength={30}
-            className="min-h-12 flex-1 rounded-2xl border-2 border-slate-200 px-4 font-semibold focus:border-kringle-spruce focus:outline-none"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") addExtra();
-            }}
-          />
-          <button
-            type="button"
-            onClick={addExtra}
-            disabled={!newName.trim()}
-            className="min-h-12 rounded-2xl border-2 border-kringle-spruce px-4 text-sm font-black text-kringle-spruce transition hover:bg-kringle-spruce hover:text-white disabled:opacity-40"
-          >
-            + Add
-          </button>
-        </div>
+      {step === 2 && (
+        <section className="animate-kk-slide-up space-y-5 text-center">
+          <GeneratedIcon name="white-elephant" size="lg" className="mx-auto h-28 w-28 animate-kk-pop-in" />
+          <div><p className="text-xs font-black uppercase tracking-widest text-emerald-700">Room ready ✓</p><h2 className="mt-1 text-3xl font-black">Let the stealing begin!</h2><p className="mt-2 text-sm text-slate-500">{hostName.trim()} hosts · {preset.charAt(0).toUpperCase() + preset.slice(1)} rules · invite and add players next</p></div>
+          {error && <p className="text-sm font-semibold text-red-600">{error}</p>}
+          <button type="button" onClick={handleCreate} disabled={!hostName.trim() || pending} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-kringle-cranberry text-lg font-black text-white shadow-[4px_4px_0_rgba(0,0,0,0.15)] disabled:opacity-40"><GeneratedIcon name="play" className="h-8 w-8" />{pending ? "Opening your room…" : "Create room & invite players"}</button>
+          <button type="button" onClick={() => setStep(1)} className="text-sm font-bold text-slate-500 underline">← Change rules</button>
+        </section>
+      )}
 
-        {hasDuplicates && (
-          <p className="text-sm font-semibold text-red-600">
-            Each player needs a unique name.
-          </p>
-        )}
-      </section>
-
-      {/* Rules */}
-      <section className="space-y-3">
-        <h2 className="text-xl font-black">Rules</h2>
-        <div className="grid gap-3">
-          {(
-            Object.entries(RULE_PRESETS) as [
-              keyof typeof RULE_PRESETS,
-              GameRules,
-            ][]
-          ).map(([key, rules]) => (
-            <label
-              key={key}
-              className={`flex cursor-pointer items-start gap-3 rounded-2xl border-2 p-4 transition ${
-                preset === key
-                  ? "border-kringle-spruce bg-kringle-spruce/5"
-                  : "border-slate-200 hover:border-slate-300"
-              }`}
-            >
-              <input
-                type="radio"
-                name="preset"
-                value={key}
-                checked={preset === key}
-                onChange={() => setPreset(key)}
-                className="mt-0.5"
-              />
-              <div>
-                <p className="font-black capitalize">{key}</p>
-                <p className="mt-0.5 text-sm text-slate-600">
-                  Max {rules.maxSteals} steal{rules.maxSteals !== 1 ? "s" : ""}{" "}
-                  ·{" "}
-                  {rules.allowImmediateStealback
-                    ? "Steal-back allowed"
-                    : "No immediate steal-back"}{" "}
-                  ·{" "}
-                  {rules.firstPlayerFinalTurn
-                    ? "Player #1 gets a final turn"
-                    : "No final turn"}
-                </p>
-              </div>
-            </label>
-          ))}
-        </div>
-      </section>
-
-      {error && <p className="text-sm font-semibold text-red-600">{error}</p>}
-
-      <button
-        type="button"
-        onClick={handleCreate}
-        disabled={!hostName.trim() || hasDuplicates || pending}
-        className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-kringle-cranberry text-lg font-black text-white shadow-[4px_4px_0_rgba(0,0,0,0.15)] disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        <GeneratedIcon name="play" className="h-8 w-8" />
-        {pending
-          ? "Setting up…"
-          : allNames.length >= 2
-            ? `Create room (${allNames.length} players)`
-            : "Create room"}
-      </button>
-
-      <div className="space-y-2 border-t border-slate-100 pt-4 text-center text-sm text-slate-500">
-        <p>
-          Got a room code?{" "}
-          <a
-            href="/kris-kringle/join"
-            className="font-semibold text-kringle-spruce underline"
-          >
-            Join a room
-          </a>
-        </p>
-        <p>
-          Planning ahead?{" "}
-          <a
-            href="/kris-kringle/plan"
-            className="font-semibold text-kringle-spruce underline"
-          >
-            Set up an exchange →
-          </a>
-        </p>
-      </div>
+      {step === 0 && <div className="space-y-2 border-t border-slate-100 pt-4 text-center text-sm text-slate-500"><p>Got a room code? <a href="/kris-kringle/join" className="font-semibold text-kringle-spruce underline">Join a room</a></p><p>Planning ahead? <a href="/kris-kringle/plan" className="font-semibold text-kringle-spruce underline">Set up an exchange →</a></p></div>}
     </div>
   );
 }
