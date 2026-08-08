@@ -11,7 +11,16 @@ import {
   giftOwnedBy,
 } from "@/lib/engine/engine";
 import type { GameState, GameActionInput } from "@/lib/engine/types";
-import { joinRoom, startGame, performRoomAction, recoverHostSession, recoverAccountPlayerSession, addManualPlayers, updateLobby, replayRoom } from "../actions";
+import {
+  joinRoom,
+  startGame,
+  performRoomAction,
+  recoverHostSession,
+  recoverAccountPlayerSession,
+  addManualPlayers,
+  updateLobby,
+  replayRoom,
+} from "../actions";
 import { GeneratedIcon } from "@/components/GeneratedIcon";
 import { upsertGameHistory } from "@/lib/game-history";
 import { gameFeedback } from "@/lib/feedback";
@@ -20,6 +29,7 @@ import { reportGameEvent } from "@/lib/telemetry";
 import { JoinSuccessPrompt } from "@/components/JoinSuccessPrompt";
 import { claimDeviceGames } from "@/app/my-games/actions";
 import { WishlistNudge } from "@/components/WishlistNudge";
+import { GameGiftInsights } from "@/components/GameGiftInsights";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -65,7 +75,12 @@ function getStoredPlayer(
   }
 }
 
-function storePlayer(code: string, playerId: string, playerName: string, playerToken: string) {
+function storePlayer(
+  code: string,
+  playerId: string,
+  playerName: string,
+  playerToken: string,
+) {
   try {
     localStorage.setItem(
       `kk_player_${code}`,
@@ -91,7 +106,10 @@ function LobbyView({
   onJoin: (name: string) => Promise<void>;
   onStart: () => Promise<void>;
   onAddManual: (name: string) => Promise<void>;
-  onLobbyChange: (change: { type: "lock"; locked: boolean } | { type: "remove"; playerId: string }) => Promise<void>;
+  onLobbyChange: (
+    change:
+      { type: "lock"; locked: boolean } | { type: "remove"; playerId: string },
+  ) => Promise<void>;
 }) {
   const [name, setName] = useState("");
   const [joining, setJoining] = useState(false);
@@ -171,24 +189,32 @@ function LobbyView({
   }
 
   const isInRoom = myPlayerId && room.players.some((p) => p.id === myPlayerId);
-  const isHost = Boolean(myPlayerId && room.players.some((p) => p.id === myPlayerId && p.isHost));
+  const isHost = Boolean(
+    myPlayerId && room.players.some((p) => p.id === myPlayerId && p.isHost),
+  );
   const canStart = room.players.length >= 2;
 
   return (
     <div className="space-y-5">
       <header className="flex items-end justify-between gap-3">
         <div>
-        <p className="text-sm font-bold uppercase tracking-[0.16em] text-kringle-cranberry">
-          Online game
-        </p>
-        <h1 className="text-3xl font-extrabold tracking-tight">Kris Kringle</h1>
+          <p className="text-sm font-bold uppercase tracking-[0.16em] text-kringle-cranberry">
+            Online game
+          </p>
+          <h1 className="text-3xl font-extrabold tracking-tight">
+            Kris Kringle
+          </h1>
         </div>
-        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">{room.players.length} here</span>
+        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+          {room.players.length} here
+        </span>
       </header>
 
       {/* Room code + QR + share */}
       <div className="rounded-2xl border-2 border-kringle-spruce bg-kringle-spruce/5 p-4 text-center">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-kringle-spruce">Invite code</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-kringle-spruce">
+          Invite code
+        </p>
         <p className="font-mono text-4xl font-black tracking-[0.16em] text-kringle-spruce">
           {room.code}
         </p>
@@ -206,7 +232,9 @@ function LobbyView({
             </div>
           </div>
         )}
-        <p className="mt-1 text-xs font-semibold text-kringle-spruce/70">Share once, then manage players below.</p>
+        <p className="mt-1 text-xs font-semibold text-kringle-spruce/70">
+          Share once, then manage players below.
+        </p>
         <div className="mt-3 grid grid-cols-3 gap-2">
           <button
             type="button"
@@ -239,7 +267,10 @@ function LobbyView({
       {/* Player list */}
       <section className="space-y-3">
         <h2 className="text-lg font-black">
-          Players <span className="text-sm text-slate-400">({room.players.length})</span>
+          Players{" "}
+          <span className="text-sm text-slate-400">
+            ({room.players.length})
+          </span>
         </h2>
         {room.players.length === 0 ? (
           <p className="text-sm text-slate-500">
@@ -248,26 +279,59 @@ function LobbyView({
         ) : (
           <div className="overflow-hidden rounded-2xl border border-slate-200">
             <div className="grid grid-cols-[minmax(0,1fr)_4.5rem_4rem] gap-2 bg-slate-100 px-3 py-1.5 text-[9px] font-black uppercase tracking-wide text-slate-500">
-              <span>Player</span><span>Status</span><span>Role</span>
+              <span>Player</span>
+              <span>Status</span>
+              <span>Role</span>
             </div>
             <ul className="divide-y divide-slate-100">
-            {room.players.map((p) => (
-              <li
-                key={p.id}
-                className={`grid min-w-0 grid-cols-[minmax(0,1fr)_4.5rem_4rem] items-center gap-2 px-3 py-2 text-xs font-semibold ${
-                  p.id === myPlayerId
-                    ? "bg-kringle-spruce/5"
-                    : "bg-white"
-                }`}
-              >
-                <span className="truncate font-black">{p.name}{p.id === myPlayerId ? " (you)" : ""}</span>
-                <span className={`flex items-center gap-1 text-[10px] font-bold ${p.isManual ? "text-slate-400" : "text-emerald-700"}`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${p.isManual ? "bg-slate-300" : "bg-emerald-500"}`} />
-                  {p.isManual ? "Added" : "Joined"}
-                </span>
-                <span className="flex items-center justify-between gap-1 text-[10px] font-bold text-slate-500"><span className="truncate">{p.isHost ? "Host" : p.isManual ? "Host phone" : "Own phone"}</span>{isHost && !p.isHost && <button type="button" aria-label={`Remove ${p.name}`} onClick={() => { if (window.confirm(`Remove ${p.name} from this lobby?`)) void onLobbyChange({ type: "remove", playerId: p.id }); }} className="min-h-7 min-w-7 rounded-lg text-red-600">×</button>}</span>
-              </li>
-            ))}
+              {room.players.map((p) => (
+                <li
+                  key={p.id}
+                  className={`grid min-w-0 grid-cols-[minmax(0,1fr)_4.5rem_4rem] items-center gap-2 px-3 py-2 text-xs font-semibold ${
+                    p.id === myPlayerId ? "bg-kringle-spruce/5" : "bg-white"
+                  }`}
+                >
+                  <span className="truncate font-black">
+                    {p.name}
+                    {p.id === myPlayerId ? " (you)" : ""}
+                  </span>
+                  <span
+                    className={`flex items-center gap-1 text-[10px] font-bold ${p.isManual ? "text-slate-400" : "text-emerald-700"}`}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${p.isManual ? "bg-slate-300" : "bg-emerald-500"}`}
+                    />
+                    {p.isManual ? "Added" : "Joined"}
+                  </span>
+                  <span className="flex items-center justify-between gap-1 text-[10px] font-bold text-slate-500">
+                    <span className="truncate">
+                      {p.isHost
+                        ? "Host"
+                        : p.isManual
+                          ? "Host phone"
+                          : "Own phone"}
+                    </span>
+                    {isHost && !p.isHost && (
+                      <button
+                        type="button"
+                        aria-label={`Remove ${p.name}`}
+                        onClick={() => {
+                          if (
+                            window.confirm(`Remove ${p.name} from this lobby?`)
+                          )
+                            void onLobbyChange({
+                              type: "remove",
+                              playerId: p.id,
+                            });
+                        }}
+                        className="min-h-7 min-w-7 rounded-lg text-red-600"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </span>
+                </li>
+              ))}
             </ul>
           </div>
         )}
@@ -296,13 +360,29 @@ function LobbyView({
               placeholder="Add someone without a phone"
               className="min-h-10 min-w-0 flex-1 rounded-xl border-2 border-slate-200 px-3 text-sm font-semibold focus:border-kringle-spruce focus:outline-none"
             />
-            <button disabled={!manualName.trim() || addingManual} className="min-h-10 shrink-0 rounded-xl border-2 border-kringle-spruce px-3 text-xs font-black text-kringle-spruce disabled:opacity-40">
+            <button
+              disabled={!manualName.trim() || addingManual}
+              className="min-h-10 shrink-0 rounded-xl border-2 border-kringle-spruce px-3 text-xs font-black text-kringle-spruce disabled:opacity-40"
+            >
               {addingManual ? "Adding…" : "+ Add"}
             </button>
           </form>
         )}
-        {isHost && <button type="button" onClick={() => void onLobbyChange({ type: "lock", locked: !room.lobby_locked })} className="min-h-10 w-full rounded-xl border-2 border-slate-200 text-xs font-black text-slate-700">{room.lobby_locked ? "Open joining" : "Close joining"} · {room.lobby_locked ? "Locked" : "Anyone with the code can join"}</button>}
-        {err && isHost && <p className="text-xs font-semibold text-red-600">{err}</p>}
+        {isHost && (
+          <button
+            type="button"
+            onClick={() =>
+              void onLobbyChange({ type: "lock", locked: !room.lobby_locked })
+            }
+            className="min-h-10 w-full rounded-xl border-2 border-slate-200 text-xs font-black text-slate-700"
+          >
+            {room.lobby_locked ? "Open joining" : "Close joining"} ·{" "}
+            {room.lobby_locked ? "Locked" : "Anyone with the code can join"}
+          </button>
+        )}
+        {err && isHost && (
+          <p className="text-xs font-semibold text-red-600">{err}</p>
+        )}
       </section>
 
       {/* Join form (only shown if not yet in the room) */}
@@ -323,7 +403,11 @@ function LobbyView({
             disabled={!name.trim() || joining || room.lobby_locked}
             className="min-h-12 w-full rounded-2xl bg-kringle-cranberry font-bold text-white disabled:opacity-40"
           >
-            {room.lobby_locked ? "Joining is closed" : joining ? "Joining…" : "Join game"}
+            {room.lobby_locked
+              ? "Joining is closed"
+              : joining
+                ? "Joining…"
+                : "Join game"}
           </button>
         </form>
       )}
@@ -1088,31 +1172,33 @@ function GameBoard({
                   ))}
                 </div>
               )}
-              {isHostDevice && <div className="flex gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => act({ type: "pause" })}
-                  className="min-h-10 flex-1 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600"
-                >
-                  Pause
-                </button>
-                <button
-                  type="button"
-                  onClick={() => act({ type: "advance" })}
-                  className="min-h-10 flex-1 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600"
-                >
-                  Skip turn
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (confirm("End the game now?")) act({ type: "end" });
-                  }}
-                  className="min-h-10 flex-1 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600"
-                >
-                  End game
-                </button>
-              </div>}
+              {isHostDevice && (
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => act({ type: "pause" })}
+                    className="min-h-10 flex-1 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600"
+                  >
+                    Pause
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => act({ type: "advance" })}
+                    className="min-h-10 flex-1 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600"
+                  >
+                    Skip turn
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm("End the game now?")) act({ type: "end" });
+                    }}
+                    className="min-h-10 flex-1 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600"
+                  >
+                    End game
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -1197,7 +1283,15 @@ function GameBoard({
           </ul>
         </section>
       )}
-      {isComplete && isHostDevice && <button type="button" onClick={() => void onReplay()} className="min-h-12 w-full rounded-2xl bg-kringle-cranberry font-black text-white shadow-[3px_3px_0_#000]">Play again with these rules →</button>}
+      {isComplete && isHostDevice && (
+        <button
+          type="button"
+          onClick={() => void onReplay()}
+          className="min-h-12 w-full rounded-2xl bg-kringle-cranberry font-black text-white shadow-[3px_3px_0_#000]"
+        >
+          Play again with these rules →
+        </button>
+      )}
 
       {/* Photos */}
       <PhotoSection roomCode={room.code} isComplete={isComplete} />
@@ -1217,39 +1311,66 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
   const [recoveringHost, setRecoveringHost] = useState(false);
   // Keep the server and first browser render identical; the subscription effect
   // immediately resolves the real online/offline state after hydration.
-  const [connectionState, setConnectionState] = useState<ConnectionState>("connecting");
+  const [connectionState, setConnectionState] =
+    useState<ConnectionState>("connecting");
   const supabaseRef = useRef(createSupabaseBrowserClient());
   const previousStatus = useRef(initialRoom.status);
-  const [celebration, setCelebration] = useState<{ title: string; detail: string } | null>(null);
-  const [joinedNow, setJoinedNow] = useState<{ playerName: string; hostName: string } | null>(null);
+  const [celebration, setCelebration] = useState<{
+    title: string;
+    detail: string;
+  } | null>(null);
+  const [joinedNow, setJoinedNow] = useState<{
+    playerName: string;
+    hostName: string;
+  } | null>(null);
 
   // Load player identity from localStorage
   useEffect(() => {
     const stored = getStoredPlayer(room.code);
-    try { const prompt = localStorage.getItem(`gamegoat_account_prompt:/kris-kringle/room/${room.code}`); if (prompt) setJoinedNow(JSON.parse(prompt)); } catch {}
+    try {
+      const prompt = localStorage.getItem(
+        `gamegoat_account_prompt:/kris-kringle/room/${room.code}`,
+      );
+      if (prompt) setJoinedNow(JSON.parse(prompt));
+    } catch {}
     if (stored) {
       setMyPlayerId(stored.playerId);
       setMyPlayerToken(stored.playerToken ?? null);
-      if (!stored.playerToken) setSessionError("This room was created before secure reconnects were enabled. Rejoin with a new name if the game has not started.");
+      if (!stored.playerToken)
+        setSessionError(
+          "This room was created before secure reconnects were enabled. Rejoin with a new name if the game has not started.",
+        );
       return;
     }
     void recoverAccountPlayerSession(room.code).then((result) => {
       if (!result.ok) return;
-      storePlayer(room.code, result.playerId, result.playerName, result.playerToken);
-      setMyPlayerId(result.playerId); setMyPlayerToken(result.playerToken); setSessionError("");
+      storePlayer(
+        room.code,
+        result.playerId,
+        result.playerName,
+        result.playerToken,
+      );
+      setMyPlayerId(result.playerId);
+      setMyPlayerToken(result.playerToken);
+      setSessionError("");
     });
   }, [room.code]);
 
   useEffect(() => {
     if (!myPlayerId || !myPlayerToken) return;
-    void claimDeviceGames([{ code: room.code, playerId: myPlayerId, playerToken: myPlayerToken }]);
+    void claimDeviceGames([
+      { code: room.code, playerId: myPlayerId, playerToken: myPlayerToken },
+    ]);
   }, [myPlayerId, myPlayerToken, room.code]);
 
   useEffect(() => {
     if (!myPlayerId || !myPlayerToken) return;
     const me = room.players.find((player) => player.id === myPlayerId);
     if (!me) return;
-    const complete = room.status === "complete" || room.state?.status === "complete" || room.state?.phase === "complete";
+    const complete =
+      room.status === "complete" ||
+      room.state?.status === "complete" ||
+      room.state?.phase === "complete";
     upsertGameHistory({
       code: room.code,
       gameType: "kris_kringle",
@@ -1257,15 +1378,29 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
       playerToken: myPlayerToken,
       playerName: me.name,
       role: me.isHost ? "host" : "participant",
-      status: complete ? "complete" : room.status === "lobby" ? "lobby" : "active",
+      status: complete
+        ? "complete"
+        : room.status === "lobby"
+          ? "lobby"
+          : "active",
       playerCount: room.players.length,
       ...(complete ? { completedAt: new Date().toISOString() } : {}),
     });
   }, [room, myPlayerId, myPlayerToken]);
 
   useEffect(() => {
-    const complete = room.status === "complete" || room.state?.status === "complete" || room.state?.phase === "complete";
-    if (complete && previousStatus.current !== "complete") { reportGameEvent("complete", "kris_kringle"); void gameFeedback("success"); setCelebration({ title: "Game complete!", detail: "Every gift found a home." }); }
+    const complete =
+      room.status === "complete" ||
+      room.state?.status === "complete" ||
+      room.state?.phase === "complete";
+    if (complete && previousStatus.current !== "complete") {
+      reportGameEvent("complete", "kris_kringle");
+      void gameFeedback("success");
+      setCelebration({
+        title: "Game complete!",
+        detail: "Every gift found a home.",
+      });
+    }
     previousStatus.current = complete ? "complete" : room.status;
   }, [room]);
 
@@ -1299,7 +1434,9 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
 
     function handleVisibility() {
       if (document.visibilityState === "visible") {
-        setConnectionState((current) => current === "offline" ? current : "reconnecting");
+        setConnectionState((current) =>
+          current === "offline" ? current : "reconnecting",
+        );
         void refreshRoom();
       }
     }
@@ -1349,21 +1486,40 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
   }, [room.code]);
 
   async function handleJoin(playerName: string) {
-    if (connectionState === "offline") throw new Error("You're offline — reconnect before joining");
+    if (connectionState === "offline")
+      throw new Error("You're offline — reconnect before joining");
     const result = await joinRoom(room.code, playerName);
     if (!result.ok) throw new Error(result.error);
     storePlayer(room.code, result.playerId, playerName, result.playerToken);
-    upsertGameHistory({ code: room.code, gameType: "kris_kringle", playerId: result.playerId, playerToken: result.playerToken, playerName, role: "participant", status: "lobby", playerCount: room.players.length + 1 });
+    upsertGameHistory({
+      code: room.code,
+      gameType: "kris_kringle",
+      playerId: result.playerId,
+      playerToken: result.playerToken,
+      playerName,
+      role: "participant",
+      status: "lobby",
+      playerCount: room.players.length + 1,
+    });
     setMyPlayerId(result.playerId);
     setMyPlayerToken(result.playerToken);
     setSessionError("");
-    const prompt = { playerName, hostName: room.players.find((player) => player.isHost)?.name ?? "the host" };
-    setJoinedNow(prompt); localStorage.setItem(`gamegoat_account_prompt:/kris-kringle/room/${room.code}`, JSON.stringify(prompt));
+    const prompt = {
+      playerName,
+      hostName:
+        room.players.find((player) => player.isHost)?.name ?? "the host",
+    };
+    setJoinedNow(prompt);
+    localStorage.setItem(
+      `gamegoat_account_prompt:/kris-kringle/room/${room.code}`,
+      JSON.stringify(prompt),
+    );
     reportGameEvent("join", "kris_kringle");
   }
 
   async function handleStart() {
-    if (connectionState === "offline") throw new Error("You're offline — reconnect before starting");
+    if (connectionState === "offline")
+      throw new Error("You're offline — reconnect before starting");
     if (!myPlayerId || !myPlayerToken) throw new Error("Join the room first");
     const result = await startGame(room.code, myPlayerId, myPlayerToken);
     if (!result.ok) throw new Error(result.error);
@@ -1372,24 +1528,50 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
   }
 
   async function handleAddManual(playerName: string) {
-    if (connectionState === "offline") throw new Error("You're offline — reconnect before adding players");
-    if (!myPlayerId || !myPlayerToken) throw new Error("Host controls are required");
-    const result = await addManualPlayers(room.code, [playerName], myPlayerId, myPlayerToken);
+    if (connectionState === "offline")
+      throw new Error("You're offline — reconnect before adding players");
+    if (!myPlayerId || !myPlayerToken)
+      throw new Error("Host controls are required");
+    const result = await addManualPlayers(
+      room.code,
+      [playerName],
+      myPlayerId,
+      myPlayerToken,
+    );
     if (!result.ok) throw new Error(result.error || "Could not add player");
   }
 
-  async function handleLobbyChange(change: { type: "lock"; locked: boolean } | { type: "remove"; playerId: string }) {
-    if (!myPlayerId || !myPlayerToken) throw new Error("Host controls are required");
-    const result = await updateLobby(room.code, myPlayerId, myPlayerToken, change);
-    if (!result.ok) setSessionError(result.error || "Could not update the lobby");
+  async function handleLobbyChange(
+    change:
+      { type: "lock"; locked: boolean } | { type: "remove"; playerId: string },
+  ) {
+    if (!myPlayerId || !myPlayerToken)
+      throw new Error("Host controls are required");
+    const result = await updateLobby(
+      room.code,
+      myPlayerId,
+      myPlayerToken,
+      change,
+    );
+    if (!result.ok)
+      setSessionError(result.error || "Could not update the lobby");
   }
 
   async function handleReplay() {
     if (!myPlayerId || !myPlayerToken) return;
     const result = await replayRoom(room.code, myPlayerId, myPlayerToken);
-    if (!result.ok) { setSessionError(result.error); reportGameEvent("action_failure", "kris_kringle"); return; }
+    if (!result.ok) {
+      setSessionError(result.error);
+      reportGameEvent("action_failure", "kris_kringle");
+      return;
+    }
     reportGameEvent("replay", "kris_kringle");
-    storePlayer(result.code, result.playerId, room.players.find((player) => player.id === myPlayerId)?.name || "Host", result.playerToken);
+    storePlayer(
+      result.code,
+      result.playerId,
+      room.players.find((player) => player.id === myPlayerId)?.name || "Host",
+      result.playerToken,
+    );
     window.location.assign(`/kris-kringle/room/${result.code}`);
   }
 
@@ -1400,9 +1582,14 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
     }
     if (!myPlayerId || !myPlayerToken) return;
     setSessionError("");
-    performRoomAction(room.code, action, myPlayerId, myPlayerToken).then((result) => {
-      if (!result.ok) setSessionError(result.error ?? "Could not update the game");
-    }).catch(() => setSessionError("Connection interrupted — please try again"));
+    performRoomAction(room.code, action, myPlayerId, myPlayerToken)
+      .then((result) => {
+        if (!result.ok)
+          setSessionError(result.error ?? "Could not update the game");
+      })
+      .catch(() =>
+        setSessionError("Connection interrupted — please try again"),
+      );
   }
 
   async function handleRecoverHost() {
@@ -1422,7 +1609,12 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
         setSessionError(result.error);
         return;
       }
-      storePlayer(room.code, result.playerId, result.playerName, result.playerToken);
+      storePlayer(
+        room.code,
+        result.playerId,
+        result.playerName,
+        result.playerToken,
+      );
       setMyPlayerId(result.playerId);
       setMyPlayerToken(result.playerToken);
     } catch {
@@ -1437,8 +1629,21 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
 
   return (
     <div className="rounded-3xl border-2 border-black bg-white p-6 shadow-[4px_4px_0_#000] sm:p-8">
-      {celebration && <MilestoneCelebration title={celebration.title} detail={celebration.detail} onDone={() => setCelebration(null)} />}
-      {joinedNow && <JoinSuccessPrompt playerName={joinedNow.playerName} hostName={joinedNow.hostName} gameName="White Elephant game" roomPath={`/kris-kringle/room/${room.code}`} />}
+      {celebration && (
+        <MilestoneCelebration
+          title={celebration.title}
+          detail={celebration.detail}
+          onDone={() => setCelebration(null)}
+        />
+      )}
+      {joinedNow && (
+        <JoinSuccessPrompt
+          playerName={joinedNow.playerName}
+          hostName={joinedNow.hostName}
+          gameName="White Elephant game"
+          roomPath={`/kris-kringle/room/${room.code}`}
+        />
+      )}
       <div className="mb-4 flex justify-end" aria-live="polite">
         <span
           className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold ${
@@ -1468,14 +1673,32 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
         </span>
       </div>
       {sessionError && (
-        <p role="alert" className="mb-5 rounded-2xl border-2 border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+        <p
+          role="alert"
+          className="mb-5 rounded-2xl border-2 border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900"
+        >
           {sessionError}
         </p>
       )}
-      {myPlayerId && <div className="mb-5"><WishlistNudge roomPath={`/kris-kringle/room/${room.code}`} /></div>}
+      {myPlayerId && (
+        <div className="mb-5">
+          <WishlistNudge roomPath={`/kris-kringle/room/${room.code}`} />
+        </div>
+      )}
+      {myPlayerId && myPlayerToken && (
+        <div className="mb-5">
+          <GameGiftInsights
+            code={room.code}
+            playerId={myPlayerId}
+            playerToken={myPlayerToken}
+          />
+        </div>
+      )}
       {!myPlayerId && (
         <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
-          <p className="text-xs font-semibold text-slate-600">Hosting on another device?</p>
+          <p className="text-xs font-semibold text-slate-600">
+            Hosting on another device?
+          </p>
           <button
             type="button"
             onClick={handleRecoverHost}
