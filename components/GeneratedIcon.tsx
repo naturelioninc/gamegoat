@@ -52,9 +52,10 @@ export function GeneratedIcon({
   "children" | "src" | "width" | "height" | "alt"
 >) {
   const pixels = sizes[size];
+  const highDensityPixels = Math.min(pixels * 2, 128);
   return (
     <img
-      src={`/icons/generated/${pixels}/${name}.webp`}
+      src={`/icons/generated/${highDensityPixels}/${name}.webp`}
       width={pixels}
       height={pixels}
       alt=""
