@@ -14,6 +14,8 @@ import type { GameState, GameActionInput } from "@/lib/engine/types";
 import { joinRoom, startGame, performRoomAction, recoverHostSession, addManualPlayers, updateLobby, replayRoom } from "../actions";
 import { GeneratedIcon } from "@/components/GeneratedIcon";
 import { upsertGameHistory } from "@/lib/game-history";
+import { gameFeedback } from "@/lib/feedback";
+import { MilestoneCelebration } from "@/components/MilestoneCelebration";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1213,6 +1215,8 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
   // immediately resolves the real online/offline state after hydration.
   const [connectionState, setConnectionState] = useState<ConnectionState>("connecting");
   const supabaseRef = useRef(createSupabaseBrowserClient());
+  const previousStatus = useRef(initialRoom.status);
+  const [celebration, setCelebration] = useState<{ title: string; detail: string } | null>(null);
 
   // Load player identity from localStorage
   useEffect(() => {
@@ -1241,6 +1245,12 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
       ...(complete ? { completedAt: new Date().toISOString() } : {}),
     });
   }, [room, myPlayerId, myPlayerToken]);
+
+  useEffect(() => {
+    const complete = room.status === "complete" || room.state?.status === "complete" || room.state?.phase === "complete";
+    if (complete && previousStatus.current !== "complete") { void gameFeedback("success"); setCelebration({ title: "Game complete!", detail: "Every gift found a home." }); }
+    previousStatus.current = complete ? "complete" : room.status;
+  }, [room]);
 
   // Subscribe to Realtime changes
   useEffect(() => {
@@ -1337,6 +1347,7 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
     if (!myPlayerId || !myPlayerToken) throw new Error("Join the room first");
     const result = await startGame(room.code, myPlayerId, myPlayerToken);
     if (!result.ok) throw new Error(result.error);
+    void gameFeedback("success");
   }
 
   async function handleAddManual(playerName: string) {
@@ -1404,6 +1415,7 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
 
   return (
     <div className="rounded-3xl border-2 border-black bg-white p-6 shadow-[4px_4px_0_#000] sm:p-8">
+      {celebration && <MilestoneCelebration title={celebration.title} detail={celebration.detail} onDone={() => setCelebration(null)} />}
       <div className="mb-4 flex justify-end" aria-live="polite">
         <span
           className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold ${

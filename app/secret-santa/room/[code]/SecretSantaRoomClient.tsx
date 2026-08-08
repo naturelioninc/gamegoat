@@ -7,6 +7,8 @@ import { joinRoom, addManualPlayers, updateLobby, replayRoom } from "@/app/kris-
 import { drawSecretSantaRoom, getSecretSantaMatch } from "../actions";
 import { GeneratedIcon } from "@/components/GeneratedIcon";
 import { upsertGameHistory } from "@/lib/game-history";
+import { gameFeedback } from "@/lib/feedback";
+import { MilestoneCelebration } from "@/components/MilestoneCelebration";
 
 interface Player { id: string; name: string; isHost?: boolean; isManual?: boolean }
 interface Room { code: string; status: "lobby" | "active"; players: Player[]; lobby_locked?: boolean }
@@ -22,6 +24,7 @@ export function SecretSantaRoomClient({ initialRoom }: { initialRoom: Room }) {
   const [showQr, setShowQr] = useState(false);
   const [match, setMatch] = useState<{ giverName: string; recipientName: string } | null>(null);
   const [pending, startTransition] = useTransition();
+  const [celebrating, setCelebrating] = useState(false);
   const supabase = useRef(createSupabaseBrowserClient());
   const me = room.players.find((p) => p.id === identity?.playerId);
   const isHost = Boolean(me?.isHost);
@@ -65,13 +68,14 @@ export function SecretSantaRoomClient({ initialRoom }: { initialRoom: Room }) {
     startTransition(async () => {
       const result = await drawSecretSantaRoom(room.code, identity.playerId, identity.playerToken);
       setMessage(result.ok ? "The draw is complete! 🎉" : result.error || "Could not draw names");
+      if (result.ok) { void gameFeedback("success"); setCelebrating(true); }
     });
   }
 
   async function reveal(targetId?: string) {
     if (!identity) return;
     const result = await getSecretSantaMatch(room.code, identity.playerId, identity.playerToken, targetId);
-    if (result.ok) setMatch({ giverName: result.giverName, recipientName: result.recipientName });
+    if (result.ok) { void gameFeedback("success"); setMatch({ giverName: result.giverName, recipientName: result.recipientName }); }
     else setMessage(result.error);
   }
 
@@ -86,6 +90,7 @@ export function SecretSantaRoomClient({ initialRoom }: { initialRoom: Room }) {
   const shareText = `Join my Secret Santa! Room ${room.code} 🎅 ${inviteUrl}`;
   return (
     <div className="space-y-5 rounded-3xl border-2 border-black bg-white p-4 shadow-[4px_4px_0_#000] sm:p-7">
+      {celebrating && <MilestoneCelebration title="Names are matched!" detail="Every assignment is private and ready." onDone={() => setCelebrating(false)} />}
       <header className="text-center"><GeneratedIcon name="secret-santa" size="lg" className="mx-auto h-20 w-20" /><p className="text-xs font-black uppercase tracking-widest text-kringle-cranberry">Private draw room</p><h1 className="text-2xl font-black">Secret Santa</h1></header>
 
       <section className="rounded-2xl bg-kringle-spruce/5 p-3 text-center">
