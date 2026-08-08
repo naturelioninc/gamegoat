@@ -3,13 +3,16 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import QRCode from "react-qr-code";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { joinRoom, addManualPlayers, updateLobby, replayRoom } from "@/app/kris-kringle/room/actions";
+import { joinRoom, addManualPlayers, updateLobby, replayRoom, recoverAccountPlayerSession } from "@/app/kris-kringle/room/actions";
 import { drawSecretSantaRoom, getSecretSantaMatch } from "../actions";
 import { GeneratedIcon } from "@/components/GeneratedIcon";
 import { upsertGameHistory } from "@/lib/game-history";
 import { gameFeedback } from "@/lib/feedback";
 import { MilestoneCelebration } from "@/components/MilestoneCelebration";
 import { reportGameEvent } from "@/lib/telemetry";
+import { JoinSuccessPrompt } from "@/components/JoinSuccessPrompt";
+import { claimDeviceGames } from "@/app/my-games/actions";
+import { WishlistNudge } from "@/components/WishlistNudge";
 
 interface Player { id: string; name: string; isHost?: boolean; isManual?: boolean }
 interface Room { code: string; status: "lobby" | "active"; players: Player[]; lobby_locked?: boolean }
@@ -26,16 +29,19 @@ export function SecretSantaRoomClient({ initialRoom }: { initialRoom: Room }) {
   const [match, setMatch] = useState<{ giverName: string; recipientName: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const [celebrating, setCelebrating] = useState(false);
+  const [joinedNow, setJoinedNow] = useState<{ playerName: string; hostName: string } | null>(null);
   const supabase = useRef(createSupabaseBrowserClient());
   const me = room.players.find((p) => p.id === identity?.playerId);
   const isHost = Boolean(me?.isHost);
   const inviteUrl = `https://games.xmasgoat.com/secret-santa/room/${room.code}`;
 
   useEffect(() => {
-    try { const saved = localStorage.getItem(storageKey(room.code)); if (saved) setIdentity(JSON.parse(saved)); } catch {}
+    try { const prompt = localStorage.getItem(`gamegoat_account_prompt:/secret-santa/room/${room.code}`); if (prompt) setJoinedNow(JSON.parse(prompt)); const saved = localStorage.getItem(storageKey(room.code)); if (saved) setIdentity(JSON.parse(saved)); else void recoverAccountPlayerSession(room.code).then((result) => { if (!result.ok) return; const next = { playerId: result.playerId, playerToken: result.playerToken }; localStorage.setItem(storageKey(room.code), JSON.stringify(next)); setIdentity(next); }); } catch {}
     const channel = supabase.current.channel(`secret-santa:${room.code}`).on("postgres_changes", { event: "UPDATE", schema: "public", table: "game_rooms", filter: `code=eq.${room.code}` }, (payload) => setRoom(payload.new as Room)).subscribe();
     return () => { void supabase.current.removeChannel(channel); };
   }, [room.code]);
+
+  useEffect(() => { if (identity) void claimDeviceGames([{ code: room.code, playerId: identity.playerId, playerToken: identity.playerToken }]); }, [identity, room.code]);
 
   useEffect(() => {
     if (!identity || !me) return;
@@ -49,6 +55,8 @@ export function SecretSantaRoomClient({ initialRoom }: { initialRoom: Room }) {
     localStorage.setItem(storageKey(room.code), JSON.stringify(next));
     upsertGameHistory({ code: room.code, gameType: "secret_santa", playerId: result.playerId, playerToken: result.playerToken, playerName: joinName.trim(), role: "participant", status: "lobby", playerCount: room.players.length + 1 });
     setIdentity(next); setJoinName(""); setMessage("You’re in! ✓");
+    const prompt = { playerName: joinName.trim(), hostName: room.players.find((player) => player.isHost)?.name ?? "the host" };
+    setJoinedNow(prompt); localStorage.setItem(`gamegoat_account_prompt:/secret-santa/room/${room.code}`, JSON.stringify(prompt));
     reportGameEvent("join", "secret_santa");
   }
 
@@ -94,6 +102,8 @@ export function SecretSantaRoomClient({ initialRoom }: { initialRoom: Room }) {
   return (
     <div className="space-y-5 rounded-3xl border-2 border-black bg-white p-4 shadow-[4px_4px_0_#000] sm:p-7">
       {celebrating && <MilestoneCelebration title="Names are matched!" detail="Every assignment is private and ready." onDone={() => setCelebrating(false)} />}
+      {joinedNow && <JoinSuccessPrompt playerName={joinedNow.playerName} hostName={joinedNow.hostName} gameName="Secret Santa game" roomPath={`/secret-santa/room/${room.code}`} />}
+      {me && <WishlistNudge roomPath={`/secret-santa/room/${room.code}`} />}
       <header className="text-center"><GeneratedIcon name="secret-santa" size="lg" className="mx-auto h-20 w-20" /><p className="text-xs font-black uppercase tracking-widest text-kringle-cranberry">Private draw room</p><h1 className="text-2xl font-black">Secret Santa</h1></header>
 
       <section className="rounded-2xl bg-kringle-spruce/5 p-3 text-center">

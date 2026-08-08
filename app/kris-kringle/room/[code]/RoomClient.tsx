@@ -11,12 +11,15 @@ import {
   giftOwnedBy,
 } from "@/lib/engine/engine";
 import type { GameState, GameActionInput } from "@/lib/engine/types";
-import { joinRoom, startGame, performRoomAction, recoverHostSession, addManualPlayers, updateLobby, replayRoom } from "../actions";
+import { joinRoom, startGame, performRoomAction, recoverHostSession, recoverAccountPlayerSession, addManualPlayers, updateLobby, replayRoom } from "../actions";
 import { GeneratedIcon } from "@/components/GeneratedIcon";
 import { upsertGameHistory } from "@/lib/game-history";
 import { gameFeedback } from "@/lib/feedback";
 import { MilestoneCelebration } from "@/components/MilestoneCelebration";
 import { reportGameEvent } from "@/lib/telemetry";
+import { JoinSuccessPrompt } from "@/components/JoinSuccessPrompt";
+import { claimDeviceGames } from "@/app/my-games/actions";
+import { WishlistNudge } from "@/components/WishlistNudge";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1218,16 +1221,29 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
   const supabaseRef = useRef(createSupabaseBrowserClient());
   const previousStatus = useRef(initialRoom.status);
   const [celebration, setCelebration] = useState<{ title: string; detail: string } | null>(null);
+  const [joinedNow, setJoinedNow] = useState<{ playerName: string; hostName: string } | null>(null);
 
   // Load player identity from localStorage
   useEffect(() => {
     const stored = getStoredPlayer(room.code);
+    try { const prompt = localStorage.getItem(`gamegoat_account_prompt:/kris-kringle/room/${room.code}`); if (prompt) setJoinedNow(JSON.parse(prompt)); } catch {}
     if (stored) {
       setMyPlayerId(stored.playerId);
       setMyPlayerToken(stored.playerToken ?? null);
       if (!stored.playerToken) setSessionError("This room was created before secure reconnects were enabled. Rejoin with a new name if the game has not started.");
+      return;
     }
+    void recoverAccountPlayerSession(room.code).then((result) => {
+      if (!result.ok) return;
+      storePlayer(room.code, result.playerId, result.playerName, result.playerToken);
+      setMyPlayerId(result.playerId); setMyPlayerToken(result.playerToken); setSessionError("");
+    });
   }, [room.code]);
+
+  useEffect(() => {
+    if (!myPlayerId || !myPlayerToken) return;
+    void claimDeviceGames([{ code: room.code, playerId: myPlayerId, playerToken: myPlayerToken }]);
+  }, [myPlayerId, myPlayerToken, room.code]);
 
   useEffect(() => {
     if (!myPlayerId || !myPlayerToken) return;
@@ -1341,6 +1357,8 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
     setMyPlayerId(result.playerId);
     setMyPlayerToken(result.playerToken);
     setSessionError("");
+    const prompt = { playerName, hostName: room.players.find((player) => player.isHost)?.name ?? "the host" };
+    setJoinedNow(prompt); localStorage.setItem(`gamegoat_account_prompt:/kris-kringle/room/${room.code}`, JSON.stringify(prompt));
     reportGameEvent("join", "kris_kringle");
   }
 
@@ -1420,6 +1438,7 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
   return (
     <div className="rounded-3xl border-2 border-black bg-white p-6 shadow-[4px_4px_0_#000] sm:p-8">
       {celebration && <MilestoneCelebration title={celebration.title} detail={celebration.detail} onDone={() => setCelebration(null)} />}
+      {joinedNow && <JoinSuccessPrompt playerName={joinedNow.playerName} hostName={joinedNow.hostName} gameName="White Elephant game" roomPath={`/kris-kringle/room/${room.code}`} />}
       <div className="mb-4 flex justify-end" aria-live="polite">
         <span
           className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold ${
@@ -1453,6 +1472,7 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
           {sessionError}
         </p>
       )}
+      {myPlayerId && <div className="mb-5"><WishlistNudge roomPath={`/kris-kringle/room/${room.code}`} /></div>}
       {!myPlayerId && (
         <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
           <p className="text-xs font-semibold text-slate-600">Hosting on another device?</p>

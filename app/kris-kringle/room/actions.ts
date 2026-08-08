@@ -126,6 +126,29 @@ export async function recoverHostSession(
   return { ok: true, playerId: host.id, playerName: host.name, playerToken };
 }
 
+export async function recoverAccountPlayerSession(code: string): Promise<
+  { ok: true; playerId: string; playerName: string; playerToken: string; isHost: boolean }
+  | { ok: false; error: string }
+> {
+  const authClient = await createSupabaseServerClient();
+  const { data: { user } } = await authClient.auth.getUser();
+  if (!user) return { ok: false, error: "Sign in to recover this game" };
+  const supabase = createSupabaseServiceClient();
+  const { data: room } = await supabase.from("game_rooms").select("id, players")
+    .eq("code", code.toUpperCase()).gt("expires_at", new Date().toISOString()).maybeSingle();
+  if (!room) return { ok: false, error: "Room not found or expired" };
+  const { data: membership } = await supabase.from("game_room_memberships").select("player_id, role")
+    .eq("room_id", room.id).eq("auth_user_id", user.id).is("archived_at", null).maybeSingle();
+  if (!membership) return { ok: false, error: "This game is not connected to your account" };
+  const player = (room.players as Array<{ id: string; name: string; isHost?: boolean; isManual?: boolean }>).find((item) => item.id === membership.player_id);
+  if (!player || player.isManual) return { ok: false, error: "Player record unavailable" };
+  const playerToken = newPlayerToken();
+  const { error } = await supabase.from("game_room_player_sessions").insert({ room_id: room.id, player_id: player.id, token_hash: hashPlayerToken(playerToken) });
+  if (error) return { ok: false, error: "Could not restore your player session" };
+  await supabase.from("game_room_memberships").update({ last_active_at: new Date().toISOString() }).eq("room_id", room.id).eq("player_id", player.id);
+  return { ok: true, playerId: player.id, playerName: player.name, playerToken, isHost: membership.role === "host" || membership.role === "cohost" };
+}
+
 export async function joinRoom(
   code: string,
   playerName: string,

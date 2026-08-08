@@ -4,6 +4,56 @@ import { createHash } from "crypto";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 
+export type AccountGame = {
+  code: string;
+  gameType: "kris_kringle" | "secret_santa";
+  status: "lobby" | "active" | "complete" | "expired";
+  role: "host" | "participant";
+  playerCount: number;
+  playerName: string;
+  lastActiveAt: string;
+};
+
+export async function getAccountGames(): Promise<{ signedIn: boolean; games: AccountGame[] }> {
+  const auth = await createSupabaseServerClient();
+  const { data: { user } } = await auth.auth.getUser();
+  if (!user) return { signedIn: false, games: [] };
+  const service = createSupabaseServiceClient();
+  const { data: memberships } = await service.from("game_room_memberships")
+    .select("room_id, player_id, role, last_active_at").eq("auth_user_id", user.id).is("archived_at", null);
+  const roomIds = [...new Set((memberships ?? []).map((item) => item.room_id))];
+  if (!roomIds.length) return { signedIn: true, games: [] };
+  const { data: rooms } = await service.from("game_rooms")
+    .select("id, code, game_type, status, players, expires_at, last_active_at").in("id", roomIds);
+  const membershipByRoom = new Map((memberships ?? []).map((item) => [item.room_id, item]));
+  const now = Date.now();
+  return { signedIn: true, games: (rooms ?? []).map((room) => {
+    const membership = membershipByRoom.get(room.id)!;
+    const player = (room.players as Array<{ id: string; name: string }>).find((item) => item.id === membership.player_id);
+    return {
+      code: room.code,
+      gameType: room.game_type as AccountGame["gameType"],
+      status: new Date(room.expires_at).getTime() <= now ? "expired" : room.status as AccountGame["status"],
+      role: (membership.role === "host" || membership.role === "cohost" ? "host" : "participant") as AccountGame["role"],
+      playerCount: Array.isArray(room.players) ? room.players.length : 0,
+      playerName: player?.name ?? "Player",
+      lastActiveAt: room.last_active_at ?? membership.last_active_at,
+    };
+  }).sort((a, b) => b.lastActiveAt.localeCompare(a.lastActiveAt)) };
+}
+
+export async function getWishlistSummary() {
+  const auth = await createSupabaseServerClient();
+  const { data: { user } } = await auth.auth.getUser();
+  if (!user) return { signedIn: false, count: 0 };
+  const service = createSupabaseServiceClient();
+  const [{ count: textCount }, { count: heartCount }] = await Promise.all([
+    service.from("user_wishlist_items").select("id", { count: "exact", head: true }).eq("auth_user_id", user.id),
+    service.from("gift_preferences").select("product_slug", { count: "exact", head: true }).eq("auth_user_id", user.id).eq("preference", "love"),
+  ]);
+  return { signedIn: true, count: (textCount ?? 0) + (heartCount ?? 0) };
+}
+
 type Claim = { code: string; playerId: string; playerToken: string };
 
 export async function claimDeviceGames(claims: Claim[]) {
