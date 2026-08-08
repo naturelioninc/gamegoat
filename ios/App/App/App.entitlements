@@ -5,6 +5,7 @@
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>applinks:games.xmasgoat.com</string>
+		<string>applinks:party.xmasgoat.com</string>
 	</array>
 </dict>
 </plist>

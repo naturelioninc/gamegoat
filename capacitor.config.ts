@@ -1,20 +1,26 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
-const productionUrl = "https://games.xmasgoat.com";
+const productionUrl = "https://games.xmasgoat.com/app";
 
 const config: CapacitorConfig = {
   appId: "com.xmasgoat.games",
-  appName: "Game Goat",
+  // Keep the existing Play package ID so the unified product ships as an
+  // update to the Game Goat test application rather than a second listing.
+  appName: "XmasGoat",
   webDir: "native-shell",
   server: {
     url: productionUrl,
     cleartext: false,
-    allowNavigation: ["games.xmasgoat.com"],
+    allowNavigation: [
+      "games.xmasgoat.com",
+      "party.xmasgoat.com",
+      "account.xmasgoat.com",
+    ],
   },
   ios: {
     contentInset: "automatic",
     preferredContentMode: "mobile",
-    scheme: "GameGoat",
+    scheme: "XmasGoat",
   },
   android: {
     allowMixedContent: false,

@@ -20,7 +20,7 @@ interface Tab {
 }
 
 const LEFT_TABS: Tab[] = [
-  { href: "/", icon: "home", label: "Home", exact: true },
+  { href: "/app", icon: "home", label: "Home", exact: true },
   { href: "/my-games", icon: "gift-games", label: "My Games" },
 ];
 
@@ -86,8 +86,6 @@ export function BottomNav({ onPlayClick }: Props) {
 
         <a
           href="https://account.xmasgoat.com"
-          target="_blank"
-          rel="noopener noreferrer"
           className="flex flex-col items-center justify-center gap-0.5 py-1 opacity-60 transition active:scale-95"
         >
           <GeneratedIcon name="players" size="sm" className="h-8 w-8" />

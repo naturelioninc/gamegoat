@@ -17,8 +17,12 @@
   },
   "dependencies": {
     "@capacitor/app": "^7.1.2",
+    "@capacitor/browser": "^7.0.5",
+    "@capacitor/camera": "^7.0.5",
     "@capacitor/core": "^7.6.8",
     "@capacitor/haptics": "^7.0.5",
+    "@capacitor/network": "^7.0.4",
+    "@capacitor/share": "^7.0.4",
     "@capacitor/status-bar": "^7.0.6",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.109.0",

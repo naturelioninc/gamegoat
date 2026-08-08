@@ -136,8 +136,8 @@ export function Header({ menuOpen, onMenuToggle, onPlayClick }: Props) {
 
         {/* Wordmark */}
         <Link
-          href="/"
-          aria-label="Game Goat home"
+          href="/app"
+          aria-label="XmasGoat home"
           onClick={close}
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
         >
