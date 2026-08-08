@@ -9,6 +9,7 @@ import { GeneratedIcon } from "@/components/GeneratedIcon";
 import { upsertGameHistory } from "@/lib/game-history";
 import { gameFeedback } from "@/lib/feedback";
 import { MilestoneCelebration } from "@/components/MilestoneCelebration";
+import { reportGameEvent } from "@/lib/telemetry";
 
 interface Player { id: string; name: string; isHost?: boolean; isManual?: boolean }
 interface Room { code: string; status: "lobby" | "active"; players: Player[]; lobby_locked?: boolean }
@@ -48,6 +49,7 @@ export function SecretSantaRoomClient({ initialRoom }: { initialRoom: Room }) {
     localStorage.setItem(storageKey(room.code), JSON.stringify(next));
     upsertGameHistory({ code: room.code, gameType: "secret_santa", playerId: result.playerId, playerToken: result.playerToken, playerName: joinName.trim(), role: "participant", status: "lobby", playerCount: room.players.length + 1 });
     setIdentity(next); setJoinName(""); setMessage("You’re in! ✓");
+    reportGameEvent("join", "secret_santa");
   }
 
   async function addManual() {
@@ -68,7 +70,7 @@ export function SecretSantaRoomClient({ initialRoom }: { initialRoom: Room }) {
     startTransition(async () => {
       const result = await drawSecretSantaRoom(room.code, identity.playerId, identity.playerToken);
       setMessage(result.ok ? "The draw is complete! 🎉" : result.error || "Could not draw names");
-      if (result.ok) { void gameFeedback("success"); setCelebrating(true); }
+      if (result.ok) { reportGameEvent("complete", "secret_santa"); void gameFeedback("success"); setCelebrating(true); }
     });
   }
 
@@ -83,6 +85,7 @@ export function SecretSantaRoomClient({ initialRoom }: { initialRoom: Room }) {
     if (!identity) return;
     const result = await replayRoom(room.code, identity.playerId, identity.playerToken);
     if (!result.ok) { setMessage(result.error); return; }
+    reportGameEvent("replay", "secret_santa");
     localStorage.setItem(storageKey(result.code), JSON.stringify({ playerId: result.playerId, playerToken: result.playerToken }));
     window.location.assign(`/secret-santa/room/${result.code}`);
   }

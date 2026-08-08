@@ -16,6 +16,7 @@ import { GeneratedIcon } from "@/components/GeneratedIcon";
 import { upsertGameHistory } from "@/lib/game-history";
 import { gameFeedback } from "@/lib/feedback";
 import { MilestoneCelebration } from "@/components/MilestoneCelebration";
+import { reportGameEvent } from "@/lib/telemetry";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1248,7 +1249,7 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
 
   useEffect(() => {
     const complete = room.status === "complete" || room.state?.status === "complete" || room.state?.phase === "complete";
-    if (complete && previousStatus.current !== "complete") { void gameFeedback("success"); setCelebration({ title: "Game complete!", detail: "Every gift found a home." }); }
+    if (complete && previousStatus.current !== "complete") { reportGameEvent("complete", "kris_kringle"); void gameFeedback("success"); setCelebration({ title: "Game complete!", detail: "Every gift found a home." }); }
     previousStatus.current = complete ? "complete" : room.status;
   }, [room]);
 
@@ -1340,6 +1341,7 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
     setMyPlayerId(result.playerId);
     setMyPlayerToken(result.playerToken);
     setSessionError("");
+    reportGameEvent("join", "kris_kringle");
   }
 
   async function handleStart() {
@@ -1347,6 +1349,7 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
     if (!myPlayerId || !myPlayerToken) throw new Error("Join the room first");
     const result = await startGame(room.code, myPlayerId, myPlayerToken);
     if (!result.ok) throw new Error(result.error);
+    reportGameEvent("start", "kris_kringle");
     void gameFeedback("success");
   }
 
@@ -1366,7 +1369,8 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
   async function handleReplay() {
     if (!myPlayerId || !myPlayerToken) return;
     const result = await replayRoom(room.code, myPlayerId, myPlayerToken);
-    if (!result.ok) { setSessionError(result.error); return; }
+    if (!result.ok) { setSessionError(result.error); reportGameEvent("action_failure", "kris_kringle"); return; }
+    reportGameEvent("replay", "kris_kringle");
     storePlayer(result.code, result.playerId, room.players.find((player) => player.id === myPlayerId)?.name || "Host", result.playerToken);
     window.location.assign(`/kris-kringle/room/${result.code}`);
   }

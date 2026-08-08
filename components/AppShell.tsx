@@ -41,6 +41,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <a href="#game-content" className="fixed left-3 top-3 z-[120] -translate-y-24 rounded-xl bg-white px-4 py-3 font-black text-black shadow-lg focus:translate-y-0">Skip to game</a>
       <FirstRunExperience />
       <Snowfall />
       <Header
@@ -58,7 +59,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      <div className={`route-scene flex-1 ${scene} ${isLiveRoom ? "pb-4" : "pb-20 sm:pb-0"}`}>{children}</div>
+      <div id="game-content" tabIndex={-1} className={`route-scene flex-1 ${scene} ${isLiveRoom ? "pb-4" : "pb-20 sm:pb-0"}`}>{children}</div>
 
       <BottomNav onPlayClick={openPicker} />
 
