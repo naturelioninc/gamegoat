@@ -2,6 +2,8 @@
 
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomInt, randomUUID } from "crypto";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { upsertRoomMembership } from "@/lib/game-memberships";
 
 const token = () => randomBytes(32).toString("base64url");
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -42,6 +44,8 @@ export async function createSecretSantaRoom(hostName: string) {
   const name = hostName.trim();
   if (!name) throw new Error("Host name required");
   const supabase = createSupabaseServiceClient();
+  const auth = await createSupabaseServerClient();
+  const { data: { user } } = await auth.auth.getUser();
   const playerId = randomUUID();
   const playerToken = token();
   const { data, error } = await supabase.from("game_rooms").insert({
@@ -49,11 +53,14 @@ export async function createSecretSantaRoom(hostName: string) {
     game_type: "secret_santa",
     rules: {},
     players: [{ id: playerId, name, isHost: true }],
+    host_user_id: user?.id ?? null,
+    host_email: user?.email?.toLowerCase() ?? null,
     status: "lobby",
   }).select("id, code").single();
   if (error || !data) throw new Error(error?.message || "Could not create room");
   const { error: sessionError } = await supabase.from("game_room_player_sessions").insert({ room_id: data.id, player_id: playerId, token_hash: hash(playerToken) });
   if (sessionError) throw new Error("Could not secure host session");
+  await upsertRoomMembership({ roomId: data.id, playerId, authUserId: user?.id, role: "host" });
   return { code: data.code, playerId, playerToken };
 }
 
@@ -80,7 +87,8 @@ export async function drawSecretSantaRoom(code: string, actorId: string, playerT
     recipients = shuffled(players.map((p) => p.id));
   }
   const assignments = players.map((p, i) => ({ giverId: p.id, match: encryptRecipient(recipients[i]!) }));
-  const { error } = await supabase.from("game_rooms").update({ status: "active", state: { drawn: true, assignments } }).eq("id", room.id);
+  const now = new Date().toISOString();
+  const { error } = await supabase.from("game_rooms").update({ status: "active", state: { drawn: true, assignments }, started_at: now, completed_at: now, last_active_at: now }).eq("id", room.id);
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }

@@ -1,6 +1,7 @@
 "use server";
 
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { upsertRoomMembership } from "@/lib/game-memberships";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   createInitialState,
@@ -70,6 +71,7 @@ export async function createRoom(
     .from("game_room_player_sessions")
     .insert({ room_id: data.id, player_id: playerId, token_hash: hashPlayerToken(playerToken) });
   if (sessionError) throw new Error("Could not secure host session");
+  await upsertRoomMembership({ roomId: data.id, playerId, authUserId: user?.id, role: "host" });
   return { code: data.code, playerId, playerToken };
 }
 
@@ -133,6 +135,8 @@ export async function joinRoom(
   const playerId = randomUUID();
   const playerToken = newPlayerToken();
   const supabase = createSupabaseServiceClient();
+  const authClient = await createSupabaseServerClient();
+  const { data: { user } } = await authClient.auth.getUser();
   const { error } = await supabase.rpc("join_game_room", {
     _code: code,
     _player_id: playerId,
@@ -140,6 +144,8 @@ export async function joinRoom(
     _token_hash: hashPlayerToken(playerToken),
   });
   if (error) return { ok: false, error: error.message.replace(/^.*?: /, "") };
+  const { data: joinedRoom } = await supabase.from("game_rooms").select("id").eq("code", code.toUpperCase()).single();
+  if (joinedRoom) await upsertRoomMembership({ roomId: joinedRoom.id, playerId, authUserId: user?.id, role: "participant" });
   return { ok: true, playerId, playerToken };
 }
 
@@ -187,7 +193,7 @@ export async function startGame(
 
   const { error: updateError } = await supabase
     .from("game_rooms")
-    .update({ state, players: shuffled, status: "active" })
+    .update({ state, players: shuffled, status: "active", started_at: new Date().toISOString(), last_active_at: new Date().toISOString() })
     .eq("code", code);
 
   if (updateError) return { ok: false, error: updateError.message };
@@ -236,6 +242,7 @@ export async function addManualPlayers(
     .eq("code", code);
 
   if (updateError) return { ok: false, error: updateError.message };
+  await Promise.all(newPlayers.map((player) => upsertRoomMembership({ roomId: room.id, playerId: player.id, role: "participant", isManual: true })));
   return { ok: true };
 }
 
@@ -295,7 +302,8 @@ export async function performRoomAction(
       .from("game_rooms")
       .update({
         state: result.state,
-        ...(isComplete ? { status: "complete" } : {}),
+        last_active_at: new Date().toISOString(),
+        ...(isComplete ? { status: "complete", completed_at: new Date().toISOString() } : {}),
       })
       .eq("code", code)
       .eq("updated_at", room.updated_at) // only write if nobody else has written since our read

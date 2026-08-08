@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { GeneratedIcon } from "@/components/GeneratedIcon";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { claimDeviceGames } from "@/app/my-games/actions";
 import {
   archiveGameHistory,
   gameHistoryHref,
@@ -41,9 +43,12 @@ function GameCard({ game, onArchive }: { game: GameHistoryEntry; onArchive: () =
 
 export function MyGamesClient() {
   const [games, setGames] = useState<GameHistoryEntry[]>([]);
+  const [signedIn, setSignedIn] = useState(false);
+  const [syncMessage, setSyncMessage] = useState("");
   useEffect(() => {
     const refresh = () => setGames(readGameHistory());
     refresh();
+    void createSupabaseBrowserClient().auth.getUser().then(({ data }) => setSignedIn(Boolean(data.user)));
     window.addEventListener("game-goat-history", refresh);
     window.addEventListener("storage", refresh);
     return () => { window.removeEventListener("game-goat-history", refresh); window.removeEventListener("storage", refresh); };
@@ -52,6 +57,11 @@ export function MyGamesClient() {
   const active = visible.filter((game) => game.status === "lobby" || game.status === "active");
   const recent = visible.filter((game) => game.status !== "lobby" && game.status !== "active");
   const archive = (code: string) => { archiveGameHistory(code); setGames(readGameHistory()); };
+  const syncGames = async () => {
+    setSyncMessage("Syncing…");
+    const result = await claimDeviceGames(games.map(({ code, playerId, playerToken }) => ({ code, playerId, playerToken })));
+    setSyncMessage(result.ok ? `${result.claimed} ${result.claimed === 1 ? "game" : "games"} saved to your account${result.conflicts.length ? ` · ${result.conflicts.length} already belongs to another account` : ""}.` : result.error);
+  };
 
   if (visible.length === 0) return (
     <section className="rounded-3xl border-2 border-dashed border-slate-300 bg-white p-7 text-center">
@@ -68,6 +78,6 @@ export function MyGamesClient() {
   return <div className="space-y-7">
     {active.length > 0 && <section className="space-y-3"><h2 className="text-lg font-black">Continue playing</h2>{active.map((game) => <GameCard key={game.code} game={game} onArchive={() => archive(game.code)} />)}</section>}
     {recent.length > 0 && <section className="space-y-3"><h2 className="text-lg font-black">Recent games</h2>{recent.map((game) => <GameCard key={game.code} game={game} onArchive={() => archive(game.code)} />)}</section>}
-    <section className="rounded-2xl bg-kringle-spruce/5 p-4"><p className="text-sm font-black text-kringle-spruce">Saved on this device</p><p className="mt-1 text-xs text-slate-600">Create a free account later to keep games across devices. Playing never requires sign-in.</p><a href="https://account.xmasgoat.com" className="mt-3 inline-flex text-sm font-black text-kringle-cranberry underline">Open My Account →</a></section>
+    <section className="rounded-2xl bg-kringle-spruce/5 p-4"><p className="text-sm font-black text-kringle-spruce">{signedIn ? "Save across devices" : "Saved on this device"}</p><p className="mt-1 text-xs text-slate-600">{signedIn ? "Attach these secure device sessions to your XmasGoat account." : "Create a free account later to keep games across devices. Playing never requires sign-in."}</p>{signedIn ? <button type="button" onClick={syncGames} className="mt-3 min-h-10 rounded-xl bg-kringle-spruce px-4 text-sm font-black text-white">Sync my games</button> : <a href="https://account.xmasgoat.com" className="mt-3 inline-flex text-sm font-black text-kringle-cranberry underline">Open My Account →</a>}{syncMessage && <p role="status" className="mt-2 text-xs font-bold text-slate-600">{syncMessage}</p>}</section>
   </div>;
 }
