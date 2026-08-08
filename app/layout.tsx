@@ -8,13 +8,13 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://games.xmasgoat.com"),
   title: {
     default: "Game Goat — Christmas Party Games",
-    template: "%s | Game Goat",
+    template: "%s | XmasGoat",
   },
   description:
     "Run a Kris Kringle or Secret Santa, or warm up with trivia, charades, and bingo. Free Christmas games — no account needed.",
-  applicationName: "Game Goat",
+  applicationName: "XmasGoat",
   openGraph: {
-    siteName: "Game Goat",
+    siteName: "XmasGoat",
     type: "website",
     locale: "en_CA",
   },
