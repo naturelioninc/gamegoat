@@ -50,11 +50,12 @@ export function MyGamesClient() {
   const [games, setGames] = useState<GameHistoryEntry[]>([]);
   const [signedIn, setSignedIn] = useState(false);
   const [accountGames, setAccountGames] = useState<AccountGame[]>([]);
+  const [accountLoaded, setAccountLoaded] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
   useEffect(() => {
     const refresh = () => setGames(readGameHistory());
     refresh();
-    void getAccountGames().then((result) => { setSignedIn(result.signedIn); setAccountGames(result.games); });
+    void getAccountGames().then((result) => { setSignedIn(result.signedIn); setAccountGames(result.games); }).finally(() => setAccountLoaded(true));
     window.addEventListener("game-goat-history", refresh);
     window.addEventListener("storage", refresh);
     return () => { window.removeEventListener("game-goat-history", refresh); window.removeEventListener("storage", refresh); };
@@ -72,6 +73,8 @@ export function MyGamesClient() {
     const result = await claimDeviceGames(games.map(({ code, playerId, playerToken }) => ({ code, playerId, playerToken })));
     setSyncMessage(result.ok ? `${result.claimed} ${result.claimed === 1 ? "game" : "games"} saved to your account${result.conflicts.length ? ` · ${result.conflicts.length} already belongs to another account` : ""}.` : result.error);
   };
+
+  if (!accountLoaded) return <section className="animate-pulse space-y-3" aria-label="Loading your games"><div className="h-28 rounded-2xl bg-slate-100" /><div className="h-28 rounded-2xl bg-slate-100" /><span className="sr-only" role="status">Loading your games…</span></section>;
 
   if (visible.length === 0 && accountGames.length === 0) return (
     <section className="rounded-3xl border-2 border-dashed border-slate-300 bg-white p-7 text-center">
