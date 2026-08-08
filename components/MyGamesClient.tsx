@@ -56,6 +56,8 @@ export function MyGamesClient() {
   const visible = useMemo(() => games.filter((game) => !game.archived), [games]);
   const active = visible.filter((game) => game.status === "lobby" || game.status === "active");
   const recent = visible.filter((game) => game.status !== "lobby" && game.status !== "active");
+  const hosted = visible.filter((game) => game.role === "host").length;
+  const peoplePlayed = visible.reduce((total, game) => total + game.playerCount, 0);
   const archive = (code: string) => { archiveGameHistory(code); setGames(readGameHistory()); };
   const syncGames = async () => {
     setSyncMessage("Syncing…");
@@ -76,8 +78,12 @@ export function MyGamesClient() {
   );
 
   return <div className="space-y-7">
+    <section aria-label="Your Game Goat summary" className="grid grid-cols-3 gap-2">
+      {[['Games', visible.length], ['Hosted', hosted], ['Players', peoplePlayed]].map(([label, value]) => <div key={label} className="rounded-2xl border-2 border-slate-100 bg-white px-2 py-3 text-center"><p className="text-2xl font-black text-kringle-spruce">{value}</p><p className="text-[10px] font-black uppercase tracking-wide text-slate-500">{label}</p></div>)}
+    </section>
     {active.length > 0 && <section className="space-y-3"><h2 className="text-lg font-black">Continue playing</h2>{active.map((game) => <GameCard key={game.code} game={game} onArchive={() => archive(game.code)} />)}</section>}
     {recent.length > 0 && <section className="space-y-3"><h2 className="text-lg font-black">Recent games</h2>{recent.map((game) => <GameCard key={game.code} game={game} onArchive={() => archive(game.code)} />)}</section>}
+    {recent.length > 0 && <section className="rounded-2xl border-2 border-kringle-gold bg-amber-50 p-4"><p className="text-xs font-black uppercase tracking-widest text-amber-800">Keep the party moving</p><h2 className="mt-1 text-lg font-black text-amber-950">Another round—or find the perfect gift?</h2><div className="mt-3 grid grid-cols-2 gap-2"><Link href={recent[0]?.gameType === "secret_santa" ? "/secret-santa" : "/kris-kringle"} className="flex min-h-11 items-center justify-center rounded-xl bg-kringle-cranberry px-2 text-center text-xs font-black text-white">Start a fresh game</Link><a href="https://xmasgoat.com/gift-ideas" target="_blank" rel="noopener noreferrer" className="flex min-h-11 items-center justify-center rounded-xl border-2 border-amber-800 px-2 text-center text-xs font-black text-amber-900">Browse gift ideas ↗</a></div><p className="mt-2 text-[10px] font-semibold text-amber-800">Gift browsing opens outside Game Goat.</p></section>}
     <section className="rounded-2xl bg-kringle-spruce/5 p-4"><p className="text-sm font-black text-kringle-spruce">{signedIn ? "Save across devices" : "Saved on this device"}</p><p className="mt-1 text-xs text-slate-600">{signedIn ? "Attach these secure device sessions to your XmasGoat account." : "Create a free account later to keep games across devices. Playing never requires sign-in."}</p>{signedIn ? <button type="button" onClick={syncGames} className="mt-3 min-h-10 rounded-xl bg-kringle-spruce px-4 text-sm font-black text-white">Sync my games</button> : <a href="https://account.xmasgoat.com" className="mt-3 inline-flex text-sm font-black text-kringle-cranberry underline">Open My Account →</a>}{syncMessage && <p role="status" className="mt-2 text-xs font-bold text-slate-600">{syncMessage}</p>}</section>
   </div>;
 }
