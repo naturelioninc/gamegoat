@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import QRCode from "react-qr-code";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { joinRoom, addManualPlayers, updateLobby } from "@/app/kris-kringle/room/actions";
+import { joinRoom, addManualPlayers, updateLobby, replayRoom } from "@/app/kris-kringle/room/actions";
 import { drawSecretSantaRoom, getSecretSantaMatch } from "../actions";
 import { GeneratedIcon } from "@/components/GeneratedIcon";
 import { upsertGameHistory } from "@/lib/game-history";
@@ -75,6 +75,14 @@ export function SecretSantaRoomClient({ initialRoom }: { initialRoom: Room }) {
     else setMessage(result.error);
   }
 
+  async function replay() {
+    if (!identity) return;
+    const result = await replayRoom(room.code, identity.playerId, identity.playerToken);
+    if (!result.ok) { setMessage(result.error); return; }
+    localStorage.setItem(storageKey(result.code), JSON.stringify({ playerId: result.playerId, playerToken: result.playerToken }));
+    window.location.assign(`/secret-santa/room/${result.code}`);
+  }
+
   const shareText = `Join my Secret Santa! Room ${room.code} 🎅 ${inviteUrl}`;
   return (
     <div className="space-y-5 rounded-3xl border-2 border-black bg-white p-4 shadow-[4px_4px_0_#000] sm:p-7">
@@ -97,6 +105,7 @@ export function SecretSantaRoomClient({ initialRoom }: { initialRoom: Room }) {
       {isHost && room.status === "lobby" && <button type="button" onClick={() => void changeLobby({ type: "lock", locked: !room.lobby_locked })} className="min-h-10 w-full rounded-xl border-2 border-slate-200 text-xs font-black text-slate-700">{room.lobby_locked ? "Open joining · Locked" : "Close joining · Anyone with the code can join"}</button>}
       {isHost && room.status === "lobby" && <div className="sticky bottom-3 z-20 -mx-1 rounded-2xl bg-white/95 p-1 shadow-[0_-8px_24px_rgba(255,255,255,.95)] backdrop-blur"><button onClick={drawNames} disabled={room.players.length < 2 || pending} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-kringle-cranberry text-lg font-black text-white shadow-[3px_3px_0_#000] disabled:opacity-40"><GeneratedIcon name="draw-names" className="h-8 w-8" />{pending ? "Mixing the magic…" : room.players.length < 2 ? "Invite at least 1 player" : `Draw names (${room.players.length})`}</button></div>}
       {room.status === "active" && me && <div className="space-y-2"><button onClick={() => reveal()} className="min-h-14 w-full rounded-2xl border-4 border-dashed border-kringle-cranberry text-lg font-black text-kringle-cranberry">Reveal my match</button>{isHost && room.players.filter((p) => p.isManual).map((p) => <button key={p.id} onClick={() => reveal(p.id)} className="min-h-10 w-full rounded-xl border-2 border-slate-200 text-sm font-bold">Reveal for {p.name}</button>)}</div>}
+      {room.status === "active" && isHost && <button type="button" onClick={() => void replay()} className="min-h-12 w-full rounded-2xl bg-kringle-spruce font-black text-white">Run another draw with new invitations →</button>}
       {message && <p className="text-center text-sm font-bold text-kringle-spruce">{message}</p>}
 
       {match && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-5" onClick={() => setMatch(null)}><div className="animate-kk-pop-in w-full max-w-sm rounded-3xl border-4 border-kringle-gold bg-amber-50 p-7 text-center shadow-xl" onClick={(e) => e.stopPropagation()}><p className="text-sm font-black text-amber-700">{match.giverName} is buying for</p><p className="mt-2 text-4xl font-black text-amber-950">{match.recipientName}</p><p className="mt-3 text-sm text-amber-700">Keep it secret! 🤫</p><button onClick={() => setMatch(null)} className="mt-5 min-h-11 w-full rounded-xl bg-kringle-cranberry font-black text-white">Hide assignment</button></div></div>}

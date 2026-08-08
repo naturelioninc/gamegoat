@@ -274,6 +274,37 @@ export async function updateLobby(
   return { ok: true };
 }
 
+export async function replayRoom(
+  code: string,
+  actorPlayerId: string,
+  playerToken: string,
+): Promise<{ ok: true; code: string; playerId: string; playerToken: string; gameType: string } | { ok: false; error: string }> {
+  const supabase = createSupabaseServiceClient();
+  const { data: source } = await supabase.from("game_rooms")
+    .select("id, game_type, rules, players, status").eq("code", code.toUpperCase()).maybeSingle();
+  if (!source) return { ok: false, error: "Room not found" };
+  if (source.status === "lobby") return { ok: false, error: "Start this game before creating a replay" };
+  if (!(await hasPlayerSession(source.id, actorPlayerId, playerToken))) return { ok: false, error: "Host session expired" };
+  const sourceHost = (source.players as Array<{ id: string; name: string; isHost?: boolean }>).find((player) => player.id === actorPlayerId && player.isHost);
+  if (!sourceHost) return { ok: false, error: "Only the host can create a replay" };
+
+  const nextPlayerId = randomUUID();
+  const nextToken = newPlayerToken();
+  const authClient = await createSupabaseServerClient();
+  const { data: { user } } = await authClient.auth.getUser();
+  const { data: next, error } = await supabase.from("game_rooms").insert({
+    code: newRoomCode(), game_type: source.game_type, rules: source.rules,
+    players: [{ id: nextPlayerId, name: sourceHost.name, isHost: true }], status: "lobby",
+    host_user_id: user?.id ?? null, host_email: user?.email?.toLowerCase() ?? null,
+    replay_source_room_id: source.id,
+  }).select("id, code").single();
+  if (error || !next) return { ok: false, error: error?.message || "Could not create replay" };
+  const { error: sessionError } = await supabase.from("game_room_player_sessions").insert({ room_id: next.id, player_id: nextPlayerId, token_hash: hashPlayerToken(nextToken) });
+  if (sessionError) return { ok: false, error: "Could not secure the new room" };
+  await upsertRoomMembership({ roomId: next.id, playerId: nextPlayerId, authUserId: user?.id, role: "host" });
+  return { ok: true, code: next.code, playerId: nextPlayerId, playerToken: nextToken, gameType: source.game_type };
+}
+
 export async function performRoomAction(
   code: string,
   action: GameActionInput,

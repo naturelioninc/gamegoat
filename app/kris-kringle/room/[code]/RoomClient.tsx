@@ -11,7 +11,7 @@ import {
   giftOwnedBy,
 } from "@/lib/engine/engine";
 import type { GameState, GameActionInput } from "@/lib/engine/types";
-import { joinRoom, startGame, performRoomAction, recoverHostSession, addManualPlayers, updateLobby } from "../actions";
+import { joinRoom, startGame, performRoomAction, recoverHostSession, addManualPlayers, updateLobby, replayRoom } from "../actions";
 import { GeneratedIcon } from "@/components/GeneratedIcon";
 import { upsertGameHistory } from "@/lib/game-history";
 
@@ -901,10 +901,12 @@ function GameBoard({
   room,
   myPlayerId,
   onAction,
+  onReplay,
 }: {
   room: GameRoom;
   myPlayerId: string | null;
   onAction: (action: GameActionInput) => void;
+  onReplay: () => Promise<void>;
 }) {
   const state = room.state!;
   const players = room.players;
@@ -1189,6 +1191,7 @@ function GameBoard({
           </ul>
         </section>
       )}
+      {isComplete && isHostDevice && <button type="button" onClick={() => void onReplay()} className="min-h-12 w-full rounded-2xl bg-kringle-cranberry font-black text-white shadow-[3px_3px_0_#000]">Play again with these rules →</button>}
 
       {/* Photos */}
       <PhotoSection roomCode={room.code} isComplete={isComplete} />
@@ -1349,6 +1352,14 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
     if (!result.ok) setSessionError(result.error || "Could not update the lobby");
   }
 
+  async function handleReplay() {
+    if (!myPlayerId || !myPlayerToken) return;
+    const result = await replayRoom(room.code, myPlayerId, myPlayerToken);
+    if (!result.ok) { setSessionError(result.error); return; }
+    storePlayer(result.code, result.playerId, room.players.find((player) => player.id === myPlayerId)?.name || "Host", result.playerToken);
+    window.location.assign(`/kris-kringle/room/${result.code}`);
+  }
+
   function handleAction(action: GameActionInput) {
     if (connectionState === "offline") {
       setSessionError("You're offline — reconnect before making a move");
@@ -1453,6 +1464,7 @@ export function RoomClient({ initialRoom }: { initialRoom: GameRoom }) {
           room={room}
           myPlayerId={myPlayerId}
           onAction={handleAction}
+          onReplay={handleReplay}
         />
       ) : (
         <SpectatorView room={room} myPlayerId={myPlayerId} />
