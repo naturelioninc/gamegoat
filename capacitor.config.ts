@@ -1,6 +1,6 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
-const productionUrl = "https://games.xmasgoat.com/app";
+const productionUrl = "https://app.xmasgoat.com/";
 
 const config: CapacitorConfig = {
   appId: "com.xmasgoat.games",
@@ -12,6 +12,7 @@ const config: CapacitorConfig = {
     url: productionUrl,
     cleartext: false,
     allowNavigation: [
+      "app.xmasgoat.com",
       "games.xmasgoat.com",
       "party.xmasgoat.com",
       "account.xmasgoat.com",

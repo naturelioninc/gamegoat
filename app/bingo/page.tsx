@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ChristmasBingoGame } from "@/components/games/ChristmasBingoGame";
+import { GameSessionBar } from "@/components/games/GameSessionBar";
 
 export const metadata: Metadata = {
   title: "Christmas Bingo",
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
 export default function BingoPage() {
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-5 py-4 sm:space-y-8 sm:py-14">
+      <GameSessionBar game="Christmas Bingo" cue="One caller · unlimited cards" />
       <header className="space-y-0.5 sm:space-y-2">
         <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-kringle-spruce sm:text-sm">
           Party game

@@ -5,58 +5,12 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { MAIN_GAMES, WARMUP_GAMES } from "@/lib/games";
-import {
-  GeneratedIcon,
-  type GeneratedIconName,
-} from "@/components/GeneratedIcon";
+import { GeneratedIcon } from "@/components/GeneratedIcon";
 
 interface Props {
   menuOpen: boolean;
   onMenuToggle: () => void;
   onPlayClick: () => void;
-}
-
-function GameIconCard({
-  icon,
-  name,
-  subtitle,
-  href,
-  large,
-  onClick,
-}: {
-  icon: GeneratedIconName;
-  name: string;
-  subtitle: string;
-  href: string;
-  large?: boolean;
-  onClick: () => void;
-}) {
-  if (large) {
-    return (
-      <Link
-        href={href}
-        onClick={onClick}
-        className="flex items-center gap-3 rounded-2xl border-2 border-black bg-white p-4 shadow-[3px_3px_0_#000] transition hover:-translate-y-0.5 hover:shadow-[4px_4px_0_#000] active:scale-95"
-      >
-        <GeneratedIcon name={icon} size="md" className="h-14 w-14 shrink-0" />
-        <div>
-          <p className="font-black leading-tight">{name}</p>
-          <p className="text-xs text-slate-500">{subtitle}</p>
-        </div>
-      </Link>
-    );
-  }
-  return (
-    <Link
-      href={href}
-      onClick={onClick}
-      className="flex flex-col items-center gap-2 rounded-2xl border-2 border-slate-200 bg-white p-3 text-center transition hover:border-black active:scale-95"
-    >
-      <GeneratedIcon name={icon} size="md" className="h-11 w-11" />
-      <p className="text-[11px] font-black leading-tight">{name}</p>
-    </Link>
-  );
 }
 
 export function Header({ menuOpen, onMenuToggle, onPlayClick }: Props) {
@@ -155,12 +109,12 @@ export function Header({ menuOpen, onMenuToggle, onPlayClick }: Props) {
         <div className="flex items-center gap-2">
           {authed !== null && (
             authed ? (
-              <Link
-                href="/account"
+              <a
+                href="https://account.xmasgoat.com"
                 className="hidden sm:inline-flex min-h-11 items-center gap-1.5 rounded-full border-2 border-black px-3 text-xs font-extrabold uppercase tracking-wide shadow-[2px_2px_0_#000] transition hover:-translate-y-0.5"
               >
                 My account
-              </Link>
+              </a>
             ) : (
               <a
                 href="https://account.xmasgoat.com"
@@ -186,103 +140,56 @@ export function Header({ menuOpen, onMenuToggle, onPlayClick }: Props) {
             id="site-menu"
             className="absolute left-3 right-3 top-[calc(100%+8px)] z-50 overflow-hidden rounded-3xl border-2 border-black bg-[#fffdf7] shadow-[6px_6px_0_#000] sm:left-6 sm:right-6"
           >
-            <div className="grid gap-4 p-4 sm:grid-cols-[1fr_1fr_auto] sm:p-5">
-              {/* Main event */}
-              <section>
-                <p className="mb-2 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-kringle-cranberry">
-                  <span className="inline-block h-2 w-2 rounded-full bg-kringle-cranberry" />
-                  Main Event
-                </p>
-                <div className="grid gap-2">
-                  {MAIN_GAMES.map((g) => (
-                    <GameIconCard
-                      key={g.href}
-                      href={g.href}
-                      icon={g.icon}
-                      name={g.name}
-                      subtitle={g.description}
-                      large
-                      onClick={close}
-                    />
-                  ))}
+            <nav aria-label="XmasGoat menu" className="max-h-[calc(100dvh-5.5rem)] overflow-y-auto p-4 sm:p-5">
+              <div className="flex items-start justify-between gap-3 pb-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-kringle-cranberry">Your Christmas, together</p>
+                  <h2 className="text-xl font-black tracking-tight">Where do you want to go?</h2>
+                </div>
+                <button type="button" onClick={close} aria-label="Close menu" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-black bg-white text-xl font-black">×</button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <a href="https://games.xmasgoat.com/app" onClick={close} className="rounded-2xl border-2 border-black bg-[#f8df92] p-3 shadow-[2px_2px_0_#000] transition active:scale-95">
+                  <GeneratedIcon name="home" className="h-9 w-9" /><strong className="mt-2 block text-sm">Home</strong><span className="text-xs text-slate-700">Your Christmas hub</span>
+                </a>
+                <a href="https://party.xmasgoat.com/events" onClick={close} className="rounded-2xl border-2 border-black bg-emerald-50 p-3 shadow-[2px_2px_0_#000] transition active:scale-95">
+                  <GeneratedIcon name="party" className="h-9 w-9" /><strong className="mt-2 block text-sm">My parties</strong><span className="text-xs text-slate-700">Plans, guests & chat</span>
+                </a>
+                <a href="https://party.xmasgoat.com/dashboard/event/new" onClick={close} className="rounded-2xl border-2 border-black bg-kringle-spruce p-3 text-white shadow-[2px_2px_0_#000] transition active:scale-95">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-2xl font-black text-kringle-spruce">+</span><strong className="mt-2 block text-sm">Plan a party</strong><span className="text-xs text-white/75">Start something fun</span>
+                </a>
+                <a href="https://account.xmasgoat.com" onClick={close} className="rounded-2xl border-2 border-black bg-sky-50 p-3 shadow-[2px_2px_0_#000] transition active:scale-95">
+                  <GeneratedIcon name="players" className="h-9 w-9" /><strong className="mt-2 block text-sm">{authed ? "My account" : "Sign in"}</strong><span className="text-xs text-slate-700">Profile & settings</span>
+                </a>
+              </div>
+
+              <section className="mt-4">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-kringle-spruce">Play together</p>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <Link href="/join" onClick={close} className="flex min-h-14 items-center gap-3 rounded-2xl border-2 border-black bg-white px-3 font-black transition active:scale-95"><GeneratedIcon name="join-code" className="h-9 w-9" /><span>Join with a code</span><span className="ml-auto">→</span></Link>
+                  <Link href="/" onClick={close} className="flex min-h-14 items-center gap-3 rounded-2xl border-2 border-black bg-white px-3 font-black transition active:scale-95"><GeneratedIcon name="play" className="h-9 w-9" /><span>Choose a game</span><span className="ml-auto">→</span></Link>
+                  <Link href="/my-games" onClick={close} className="flex min-h-14 items-center gap-3 rounded-2xl border-2 border-black bg-white px-3 font-black transition active:scale-95"><GeneratedIcon name="score" className="h-9 w-9" /><span>My games</span><span className="ml-auto">→</span></Link>
                 </div>
               </section>
 
-              {/* Warm-up */}
-              <section>
-                <p className="mb-2 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-kringle-spruce">
-                  <span className="inline-block h-2 w-2 rounded-full bg-kringle-spruce" />
-                  Warm-Up Games
-                </p>
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-1 sm:gap-2">
-                  {WARMUP_GAMES.map((g) => (
-                    <Link
-                      key={g.href}
-                      href={g.href}
-                      onClick={close}
-                      className="flex items-center gap-3 rounded-2xl border-2 border-slate-200 bg-white p-3 transition hover:border-black active:scale-95 sm:p-3"
-                    >
-                      <GeneratedIcon
-                        name={g.icon}
-                        size="md"
-                        className="h-10 w-10 shrink-0"
-                      />
-                      <div className="hidden sm:block">
-                        <p className="text-sm font-black">{g.name}</p>
-                        <p className="text-xs text-slate-500">{g.subtitle}</p>
-                      </div>
-                      <p className="text-[10px] font-black sm:hidden">
-                        {g.name}
-                      </p>
-                    </Link>
-                  ))}
+              <section className="mt-4 border-t-2 border-slate-200 pt-3">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-500">Discover</p>
+                <div className="grid grid-cols-2 gap-2 text-sm font-bold sm:grid-cols-4">
+                  <a href="https://xmasgoat.com/gift-ideas" className="rounded-xl bg-rose-50 px-3 py-3">🎁 Gift ideas</a>
+                  <a href="https://xmasgoat.com/tools" className="rounded-xl bg-violet-50 px-3 py-3">🛠 Free tools</a>
+                  <a href="https://xmasgoat.com/how-it-works" className="rounded-xl bg-amber-50 px-3 py-3">✨ How it works</a>
+                  <a href="https://xmasgoat.com" className="rounded-xl bg-slate-100 px-3 py-3">🐐 XmasGoat.com</a>
                 </div>
               </section>
-
-              {/* External links */}
-              <section className="hidden border-l-2 border-slate-100 pl-4 sm:block">
-                <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  XmasGoat Family
-                </p>
-                <div className="grid gap-1 text-sm">
-                  <a
-                    href="https://xmasgoat.com/gift-ideas"
-                    className="flex items-center gap-2 rounded-xl px-2 py-2 font-bold hover:bg-black hover:text-white"
-                  >
-                    <GeneratedIcon name="gift-games" className="h-7 w-7" /> Gift ideas
-                  </a>
-                  <a
-                    href="https://party.xmasgoat.com"
-                    className="flex items-center gap-2 rounded-xl px-2 py-2 font-bold hover:bg-black hover:text-white"
-                  >
-                    <GeneratedIcon name="party" className="h-7 w-7" /> Party planner
-                  </a>
-                  <a
-                    href="https://xmasgoat.com"
-                    className="flex items-center gap-2 rounded-xl px-2 py-2 font-bold hover:bg-black hover:text-white"
-                  >
-                    <GeneratedIcon name="home" className="h-7 w-7" /> XmasGoat.com
-                  </a>
-                </div>
-                <div className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-400">
-                  <a
-                    href="https://xmasgoat.com/privacy"
-                    className="hover:underline"
-                  >
-                    Privacy
-                  </a>
-                </div>
-              </section>
-            </div>
+            </nav>
 
             {/* Footer bar */}
             <div className="flex flex-wrap items-center justify-between gap-2 border-t-2 border-black bg-black px-5 py-3 text-xs font-semibold text-white">
               <p>Make Christmas legendary.</p>
-              <div className="flex gap-4 sm:hidden">
-                <Link href="/my-games" onClick={close} className="underline">My Games</Link>
-                <a href="https://account.xmasgoat.com" className="underline">
-                  My Account
-                </a>
+              <div className="flex gap-4">
+                <a href="https://xmasgoat.com/privacy" className="underline">Privacy</a>
+                <a href="https://account.xmasgoat.com/settings" className="underline">Settings</a>
               </div>
             </div>
           </div>
