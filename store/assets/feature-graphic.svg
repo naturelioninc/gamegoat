@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+<rect width="1024" height="500" fill="#fffdf7"/>
+<circle cx="900" cy="80" r="220" fill="#f8e095"/>
+<circle cx="70" cy="495" r="150" fill="#e5eee7"/>
+<text x="64" y="132" font-family="DejaVu Sans,sans-serif" font-size="58" font-weight="bold" fill="#173f2d">XMASGOAT</text>
+<text x="66" y="209" font-family="DejaVu Sans,sans-serif" font-size="33" font-weight="bold" fill="#173f2d">Christmas gifts, remembered.</text>
+<text x="66" y="293" font-family="DejaVu Sans,sans-serif" font-size="25" fill="#173f2d">Secret Santa</text>
+<text x="66" y="342" font-family="DejaVu Sans,sans-serif" font-size="25" fill="#173f2d">My Christmas List</text>
+<text x="66" y="391" font-family="DejaVu Sans,sans-serif" font-size="25" fill="#173f2d">Wish Lists</text>
+<rect x="703" y="177" width="232" height="216" rx="26" fill="#173f2d"/>
+<rect x="683" y="157" width="272" height="65" rx="14" fill="#a51c30"/>
+<rect x="799" y="157" width="38" height="236" fill="#f8e095"/>
+<path d="M818 155 C725 145 742 66 782 96 C806 113 818 155 818 155 C821 97 876 74 886 109 C894 138 853 152 818 155" fill="none" stroke="#a51c30" stroke-width="17" stroke-linecap="round"/>
+</svg>

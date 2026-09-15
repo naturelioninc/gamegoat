@@ -11,6 +11,7 @@ const config: CapacitorConfig = {
   server: {
     url: productionUrl,
     cleartext: false,
+    errorPath: "index.html",
     allowNavigation: [
       "app.xmasgoat.com",
       "games.xmasgoat.com",
@@ -25,6 +26,7 @@ const config: CapacitorConfig = {
   },
   android: {
     allowMixedContent: false,
+    adjustMarginsForEdgeToEdge: "auto",
     backgroundColor: "#fffdf7",
   },
   plugins: {

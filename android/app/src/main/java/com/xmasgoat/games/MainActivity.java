@@ -20,6 +20,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(InstallInvitationPlugin.class);
+        registerPlugin(SharedWishPlugin.class);
         super.onCreate(savedInstanceState);
         getBridge().getWebView().setOverScrollMode(View.OVER_SCROLL_NEVER);
 
