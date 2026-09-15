@@ -47,3 +47,16 @@ The bundle has not been uploaded to Play from this session. Console declarations
 - Build/sign: `scripts/release-android.sh`. Signing files stay outside Git in the existing protected signing directory.
 - Private moderation queue: https://app.xmasgoat.com/admin/wish-reports. Owner must monitor it; no automatic email notification is configured.
 - Detailed Console handoff and official policy sources: [release checklist](../store/RELEASE_CHECKLIST.md).
+
+## Final results
+
+- Web deployment **17389155a54b824b58b2441d32192de9decfd66d — READY** (`kriskringle-canada-4r0hfeywk-andrews-projects-adb9024a.vercel.app`). Changed public pages returned 200; production image optimization returned a valid resized image.
+- The final home screen was checked at 360 × 640: all three job headings fit above the bottom navigation.
+- Production safety tests passed: anonymous reporting, private snapshots, account/device blocking, unblock, suspension and denial of non-admin access. Existing Secret Santa and reservation suites passed again after these changes.
+- Patched direct Sharp to 0.35.4 and transitive nanoid to 3.3.19. `npm audit --omit=dev` reports **0 vulnerabilities**. Sharp resize/encode/decode passed. This is a production-dependency audit, not an independent security certification or a claim about development-only tooling.
+- Android release command: **BUILD SUCCESSFUL**, 509 tasks. The earlier optional debug APK assembly was stopped after the release bundle finished; the final command reran the release/test/lint gates successfully. No debug APK is supplied as a release artifact.
+- Android unit tests: 2 passed. Release lint: **0 errors**, 16 warnings (dependency update suggestions, generated/unused resources, icon variants and manifest ordering).
+- Signed upload bundle: `xmasgoat-1.6-release.aab`, using the existing `gamegoat-upload` key. `jarsigner -verify` passed. Its self-signed upload-certificate warnings are expected; Google Play uses its separate app-signing certificate for installed releases.
+- SHA-256: `5d86416e93a068f7292e6ae15e49eaca87250e79e55b818679fdf311fd30a0c9`.
+- Google bundletool 1.18.3 validation passed. Manifest assertions confirmed package `com.xmasgoat.games`, version 1.6 (7), target API 36, no debuggable release and disabled backup. The compiled SharedWish plugin is present.
+- Bundle inspection found **no native `.so` libraries** requiring 16 KB alignment. The merged permissions are Internet, optional Camera, Vibrate, network state, Play Install Referrer binding and AndroidX's signature-protected internal receiver permission.
