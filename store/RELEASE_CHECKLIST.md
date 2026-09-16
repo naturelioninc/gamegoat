@@ -70,3 +70,7 @@ For a hosted UI regression, restore the prior known-good Vercel deployment. Keep
 - Open each report's content snapshot. Dismiss unfounded reports or hide the user's wish lists. A hidden user's shared/Secret Santa wishes remain unavailable until an administrator restores them.
 - Users can report from shared lists and their Secret Santa match, and block wish-list owners. Signed-in blocks persist across devices; guest blocks apply on that device. Users can unblock from Wish Lists → Blocked users.
 - Report explanations/content snapshots and account block preferences are additional optional user-generated content in the Data safety review.
+
+## Publishing from the VPS (set up 2026-09-16)
+
+`node scripts/play-publish.mjs tracks` lists tracks; `node scripts/play-publish.mjs upload releases/xmasgoat-1.8-release.aab internal --notes "…"` uploads and rolls out. It acts as the service account `play-publisher@root-opus-475504-n0.iam.gserviceaccount.com` by impersonation from the gcloud sign-in on the VPS (info@naturelion.ca); there is no key file. The service account must be invited in Play Console → Users and permissions with "View app information", "Release apps to testing tracks" and "Manage testing tracks and edit tester lists" on XmasGoat. Production releases stay a Console action unless that permission is granted deliberately.
