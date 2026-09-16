@@ -5,7 +5,12 @@ What is already done through the API: store listing (en-US, en-CA), icon, featur
 Console: https://play.google.com/console → XmasGoat → Dashboard → "Set up your app".
 
 ## App access
-**All functionality is available without special access.** Every feature works without signing in; a name is asked for, an email only to share a list or open a Secret Santa match. If a reviewer login is still demanded, create one at https://app.xmasgoat.com/start with a fresh address and enter it only in the Console.
+Choose **All or some functionality is restricted** (the app has an optional sign-in and asks for an email at two points, and Google rejects apps whose reviewers hit any such step without credentials). Add one instruction set:
+
+- Name: Reviewer account
+- Username: play-reviewer@xmasgoat.com
+- Password: (in the Console only; created 2026-09-16, password sign-in verified)
+- Instructions: "Every feature works without signing in: type a name when asked. Where the app asks for an email (sharing a list, opening a Secret Santa match), typing any email is enough; no code is required. Optional password sign-in is at https://app.xmasgoat.com/start."
 
 ## Ads
 **No, my app does not contain ads.**
