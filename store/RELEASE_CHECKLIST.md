@@ -28,8 +28,8 @@ Organize Christmas gifts in one place with Secret Santa, My Christmas List and W
 
 ## Checks that require your phone / Play access
 
-1. Install **1.6 (7)** from Play internal testing; upgrade from your current test version and confirm your existing account/lists remain.
-2. In Chrome, open a product page → Share → XmasGoat. Confirm the wish, save it, reopen and verify. Repeat with the app closed and already open.
+1. Install **1.7 (8)** from Play internal testing; upgrade from your current test version and confirm your existing account/lists remain.
+2. In Chrome, open a product page → Share → XmasGoat. Also share a screenshot from Photos → XmasGoat. Confirm the preview, optional AI naming, save and persistence. Repeat with the app closed and already open. In Add a wish, test Choose photo and Take photo, camera cancellation/denial, and saving without an AI suggestion.
 3. Join a test exchange using camera QR, a QR photo and a typed code. Deny camera access once and confirm the alternatives remain usable.
 4. Open an invitation and shared wish-list link with the app installed. For deferred invitations, uninstall only on a spare test device, follow an invitation's Play link, install from Play, and verify the code/invitation is restored. Sideloading cannot validate Play Install Referrer.
 5. Check keyboard, Android Back, status/navigation bars and large text on Android 15/16 and one older phone. Confirm the bottom navigation is not covered.
