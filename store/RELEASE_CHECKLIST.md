@@ -1,19 +1,19 @@
-# XmasGoat Android 1.6 — release handoff
+# XmasGoat Android 1.8 — release handoff
 
 Package: `com.xmasgoat.games` (keep the existing Play listing).
-Version: **1.6, code 7**. Hosted service: **https://app.xmasgoat.com**.
+Version: **1.8, code 9**. Hosted service: **https://app.xmasgoat.com**.
 This supersedes the older party/game release instructions.
 
 ## Upload package
 
-- Signed AAB: `android/app/build/outputs/bundle/release/xmasgoat-1.6-release.aab`.
+- Signed AAB: `android/app/build/outputs/bundle/release/xmasgoat-1.8-release.aab` (copied to `releases/` when built).
 - Upload to the existing app's internal test track first. If Play already has code 7 or higher, increment the code and rebuild; never change the package ID.
 - Native source is on `feat/simple-santa-invitations` in `naturelioninc/gamegoat`.
 - The production web service is in `naturelioninc/kriskringle-canada`; do not deploy this repository's old Game Goat website.
 - App name: **XmasGoat: Gifts & Secret Santa**. Recommended category: **Productivity**, matching the gift-organizing focus.
 - English Canadian/US copy: `store/listings/en-CA/` and `en-US/`.
 - Icon: `store/assets/icon-512.png`; feature graphic: `store/assets/feature-graphic.png` (1024 × 500).
-- Screenshots in `store/assets/screenshots/` show the current hosted mobile UI with disposable example data. They are not proof of physical-device testing.
+- Screenshots in `store/assets/screenshots/` (1080 × 2340) were captured from production on 2026-09-16 with disposable example data and the current design. They are not proof of physical-device testing.
 
 ## Console URLs
 
@@ -22,9 +22,17 @@ This supersedes the older party/game release instructions.
 - Support: https://app.xmasgoat.com/support
 - Contact: naturelionmushrooms@outlook.com
 
-## Release notes
+## What changed in 1.8
 
-Organize Christmas gifts in one place with Secret Santa, My Christmas List and Wish Lists. Share webpage links to XmasGoat, save wishes, reserve gifts privately and track buying and wrapping. Includes clearer camera access, invitation links and connection recovery.
+- The whole app was redesigned (poster screens, illustrations, how-it-works on every screen).
+- Nobody signs up. Joining, creating or saving anything makes a person quietly; an email is asked for afterwards and required only to share a list or open a Secret Santa match.
+- The personal card is the key: opening its link on any phone signs that phone in. Links to `app.xmasgoat.com` open inside the app (App Links, verified against the Play signing certificate).
+- Lists: several per person, a child's list with a co-editor, read and edit links, reservations hidden from the wisher. Family circles.
+- The wrapper only allows navigation on `app.xmasgoat.com`; the retired party and games hosts are gone from the allowlist and the intent filters.
+
+## Release notes (Play)
+
+Christmas, sorted. Draw Secret Santa names with one card and no emails, keep a list for yourself and one for your kids, share a link and let people claim gifts without seeing what others chose. Everything follows you when you add an email; nothing needs a password.
 
 ## Checks that require your phone / Play access
 
@@ -36,7 +44,8 @@ Organize Christmas gifts in one place with Secret Santa, My Christmas List and W
 6. Launch in airplane mode → reconnect → Try again. While signed in, lose the network and confirm the offline message; retry saving after reconnecting.
 7. Run Play's pre-launch report and address crashes/ANRs or accessibility blockers. Check App Links verification against the **Play app-signing certificate**, not the upload certificate.
 8. Complete Console declarations: app access, content rating, target audience, ads and Data safety. Use `DATA_SAFETY.md` as a draft grounded in the implementation, and confirm operational/provider details. The product is intended for adult gift organizers; select the actual intended audience.
-9. Provide Google reviewers a dedicated, empty test account with reusable password access if requested. Do not give them your personal account or accounts containing real assignments. The app supports normal password sign-in; create the reviewer account through the app and enter its credentials only in Play Console.
+9. Provide Google reviewers a dedicated, empty test account with reusable password access if requested. Do not give them your personal account or accounts containing real assignments. Password sign-in still exists at /start; create the reviewer account there and enter its credentials only in Play Console. Note for the "app access" declaration: every feature works without signing in.
+9b. Open a Secret Santa card link (`https://app.xmasgoat.com/secret-santa/s/…`) from Messages with the app installed and confirm it opens inside the app and lands on the exchange signed in. Then open the same link on a phone where a different person is signed in and confirm the switch prompt.
 10. Confirm your developer identity, countries, contact details and production access. Some newer personal accounts require 12 opted-in closed testers for 14 consecutive days before production access.
 11. Submit for review when the test results and declarations are complete. Prefer a limited initial rollout when Play offers it; monitor Android vitals and support mail.
 

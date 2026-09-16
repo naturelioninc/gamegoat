@@ -12,12 +12,9 @@ const config: CapacitorConfig = {
     url: productionUrl,
     cleartext: false,
     errorPath: "index.html",
-    allowNavigation: [
-      "app.xmasgoat.com",
-      "games.xmasgoat.com",
-      "party.xmasgoat.com",
-      "account.xmasgoat.com",
-    ],
+    // Only the app host. The party and games subdomains are retired; any
+    // other link (the gift catalogue, a shop) opens in the phone's browser.
+    allowNavigation: ["app.xmasgoat.com"],
   },
   ios: {
     contentInset: "automatic",
