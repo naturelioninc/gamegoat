@@ -60,3 +60,10 @@ The bundle has not been uploaded to Play from this session. Console declarations
 - SHA-256: `5d86416e93a068f7292e6ae15e49eaca87250e79e55b818679fdf311fd30a0c9`.
 - Google bundletool 1.18.3 validation passed. Manifest assertions confirmed package `com.xmasgoat.games`, version 1.6 (7), target API 36, no debuggable release and disabled backup. The compiled SharedWish plugin is present.
 - Bundle inspection found **no native `.so` libraries** requiring 16 KB alignment. The merged permissions are Internet, optional Camera, Vibrate, network state, Play Install Referrer binding and AndroidX's signature-protected internal receiver permission.
+
+## 1.8 (code 9) — built 2026-09-16
+
+- `scripts/release-android.sh` on the VPS: unit tests, lintRelease and bundleRelease passed; jarsigner verified. 41 minutes under a load average of ~17.
+- Bundle: `releases/xmasgoat-1.8-release.aab`, sha256 `45d89a7d34674985c614a3e58d7bc2ab620ac9602488259e7156204c26eb4611`.
+- Changes: allowNavigation restricted to `app.xmasgoat.com`; the `party.xmasgoat.com` App Links filter removed; store screenshots and release notes for the redesigned, sign-up-free app (see `store/RELEASE_CHECKLIST.md`).
+- Not verified here: install from Play, physical QR scan, App Links against the Play signing certificate, the Console declarations. Those are the checklist's phone items.
