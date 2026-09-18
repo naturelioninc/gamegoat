@@ -25,6 +25,8 @@ public class MainActivity extends BridgeActivity {
         getBridge().getWebView().setOverScrollMode(View.OVER_SCROLL_NEVER);
         // The website talks to the phone through this, origin-locked by the platform.
         NativeBridge.install(this, getBridge().getWebView());
+        // One photo button on the page, one sheet on the phone: camera, gallery, files.
+        PhotoChooser.install(getBridge());
 
         appUpdateManager = AppUpdateManagerFactory.create(this);
         updateLauncher = registerForActivityResult(
