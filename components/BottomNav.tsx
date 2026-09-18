@@ -1,41 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  GeneratedIcon,
-  type GeneratedIconName,
-} from "@/components/GeneratedIcon";
+import { GeneratedIcon } from "@/components/GeneratedIcon";
 
-interface Props {
-  onPlayClick: () => void;
-}
-
-interface Tab {
-  href: string;
-  icon: GeneratedIconName;
-  label: string;
-  iconBg?: string;
-  exact?: boolean;
-}
-
-const LEFT_TABS: Tab[] = [
-  { href: "/app", icon: "home", label: "Home", exact: true },
-  { href: "/my-games", icon: "gift-games", label: "My Games" },
-];
-
-const RIGHT_TABS: Tab[] = [
-  { href: "/join", icon: "join-code", label: "Join" },
-];
+interface Props { onPlayClick: () => void; }
 
 export function BottomNav({ onPlayClick }: Props) {
   const pathname = usePathname();
-  if (/\/(kris-kringle|secret-santa)\/room\//.test(pathname)) return null;
-
-  const isActive = (href: string, exact?: boolean) =>
-    exact
-      ? pathname === href
-      : pathname === href || pathname.startsWith(`${href}/`);
+  if (
+    /\/(kris-kringle|secret-santa)\/room\//.test(pathname) ||
+    ["/trivia", "/charades", "/bingo"].includes(pathname)
+  ) return null;
 
   return (
     <nav
@@ -43,54 +18,11 @@ export function BottomNav({ onPlayClick }: Props) {
       className="fixed bottom-0 left-0 right-0 z-30 border-t-2 border-black bg-[#fffdf7]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
     >
       <div className="grid h-16 grid-cols-5 items-center px-1">
-        {LEFT_TABS.map(({ href, icon, label, exact }) => {
-          const active = isActive(href, exact);
-          return (
-            <Link
-              key={href}
-              href={href}
-              aria-current={active ? "page" : undefined}
-              className={`flex flex-col items-center justify-center gap-0.5 py-1 transition ${active ? "opacity-100" : "opacity-50 hover:opacity-75"}`}
-            >
-              <span
-                className={`flex h-8 w-8 items-center justify-center transition ${active ? "scale-110" : ""}`}
-              >
-                <GeneratedIcon name={icon} size="sm" className="h-8 w-8" />
-              </span>
-              <span
-                className={`text-[9px] font-black uppercase tracking-wide ${active ? "text-black" : "text-slate-500"}`}
-              >
-                {label}
-              </span>
-            </Link>
-          );
-        })}
-
-        {/* Play button — center focus */}
-        <button
-          type="button"
-          onClick={onPlayClick}
-          className="flex flex-col items-center justify-center gap-0.5 py-1"
-          aria-label="Pick a game"
-        >
-          <GeneratedIcon name="play" size="sm" className="h-8 w-8" />
-          <span className="text-[9px] font-black uppercase tracking-wide text-slate-500">
-            All games
-          </span>
-        </button>
-
-        {RIGHT_TABS.map(({ href, icon, label, exact }) => {
-          const active = isActive(href, exact);
-          return <Link key={href} href={href} aria-current={active ? "page" : undefined} className={`flex flex-col items-center justify-center gap-0.5 py-1 transition ${active ? "opacity-100" : "opacity-50 hover:opacity-75"}`}><span className={`flex h-8 w-8 items-center justify-center transition ${active ? "scale-110" : ""}`}><GeneratedIcon name={icon} size="sm" className="h-8 w-8" /></span><span className={`text-[9px] font-black uppercase tracking-wide ${active ? "text-black" : "text-slate-500"}`}>{label}</span></Link>;
-        })}
-
-        <a
-          href="https://account.xmasgoat.com"
-          className="flex flex-col items-center justify-center gap-0.5 py-1 opacity-60 transition active:scale-95"
-        >
-          <GeneratedIcon name="players" size="sm" className="h-8 w-8" />
-          <span className="text-[9px] font-black uppercase tracking-wide text-slate-500">Account</span>
-        </a>
+        <a href="https://games.xmasgoat.com/app" className="flex flex-col items-center justify-center gap-0.5 py-1"><GeneratedIcon name="home" size="sm" className="h-8 w-8" /><span className="text-[9px] font-black uppercase">Home</span></a>
+        <a href="https://party.xmasgoat.com/events" className="flex flex-col items-center justify-center gap-0.5 py-1 opacity-60"><span className="flex h-8 items-center text-2xl">🎄</span><span className="text-[9px] font-black uppercase">Parties</span></a>
+        <a href="https://party.xmasgoat.com/dashboard/event/new" className="flex flex-col items-center justify-center gap-0.5 py-1 opacity-60"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-kringle-spruce text-xl font-black text-white">+</span><span className="text-[9px] font-black uppercase">New</span></a>
+        <button type="button" onClick={onPlayClick} className="flex flex-col items-center justify-center gap-0.5 py-1" aria-label="Pick a game"><GeneratedIcon name="play" size="sm" className="h-8 w-8" /><span className="text-[9px] font-black uppercase">Games</span></button>
+        <a href="https://account.xmasgoat.com" className="flex flex-col items-center justify-center gap-0.5 py-1 opacity-60"><GeneratedIcon name="players" size="sm" className="h-8 w-8" /><span className="text-[9px] font-black uppercase">Account</span></a>
       </div>
     </nav>
   );

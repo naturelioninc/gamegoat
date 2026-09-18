@@ -38,8 +38,8 @@ const WARMUP_GAMES = [
     href: "/trivia",
     icon: "trivia",
     name: "Christmas Trivia",
-    description: "15 questions · traditions, music, movies & food",
-    time: "~10 min",
+    description: "10-question rounds · streaks · shareable scores",
+    time: "~5 min",
   },
   {
     href: "/charades",
@@ -89,6 +89,12 @@ export default function HomePage() {
       </header>
 
       <ContinuePlaying />
+
+      <Link href="/join" className="group flex items-center gap-3 rounded-2xl border-2 border-black bg-[#e8fbf5] p-3 shadow-[3px_3px_0_#000] transition active:scale-[.98] sm:p-4">
+        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-kringle-spruce text-2xl text-white">#</span>
+        <span className="min-w-0 flex-1"><span className="block text-[10px] font-black uppercase tracking-widest text-emerald-700">Play together</span><span className="block text-lg font-black">Got a room code?</span><span className="app-web-extra text-sm text-slate-600">Join your host in seconds—no account needed.</span></span>
+        <span className="rounded-full bg-white px-3 py-2 text-sm font-black shadow-[2px_2px_0_#000]">Join →</span>
+      </Link>
 
       {/* Main Event */}
       <section>

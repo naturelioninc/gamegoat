@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CHRISTMAS_BINGO_ITEMS,
   FREE_SPACE,
@@ -9,6 +9,8 @@ import {
   shuffled,
 } from "@/lib/games/christmas-bingo";
 import { GeneratedIcon } from "@/components/GeneratedIcon";
+import { gameFeedback } from "@/lib/feedback";
+import { MilestoneCelebration } from "@/components/MilestoneCelebration";
 
 export function ChristmasBingoGame() {
   const [mode, setMode] = useState<"card" | "caller">("card");
@@ -16,11 +18,19 @@ export function ChristmasBingoGame() {
   const [marked, setMarked] = useState<Set<number>>(new Set([12]));
   const [callDeck, setCallDeck] = useState(() => shuffled(CHRISTMAS_BINGO_ITEMS));
   const [callIndex, setCallIndex] = useState(-1);
+  const [celebrating, setCelebrating] = useState(false);
   const bingo = useMemo(() => hasBingo(marked), [marked]);
+
+  useEffect(() => {
+    if (!bingo) return;
+    setCelebrating(true);
+    void gameFeedback("success");
+  }, [bingo]);
 
   const newCard = () => {
     setCard(generateBingoCard());
     setMarked(new Set([12]));
+    setCelebrating(false);
   };
 
   const toggle = (index: number) => {
@@ -29,6 +39,7 @@ export function ChristmasBingoGame() {
       const next = new Set(current);
       if (next.has(index)) next.delete(index);
       else next.add(index);
+      void gameFeedback("tap");
       return next;
     });
   };
@@ -89,6 +100,7 @@ export function ChristmasBingoGame() {
               <div className="animate-kk-slide-up rounded-2xl bg-amber-50 p-3 text-2xl font-black text-amber-900">
                 <GeneratedIcon name="bingo-celebration" size="md" className="mx-auto h-16 w-16" />
                 BINGO!
+                <button type="button" onClick={() => navigator.share?.({ title: "BINGO!", text: "I just got Christmas Bingo on XmasGoat!", url: location.href })} className="mx-auto mt-2 block rounded-full border-2 border-amber-900 px-4 py-2 text-sm">Share the win ↗</button>
               </div>
             ) : (
               <p className="text-sm text-slate-600">Tap a square when the caller says it.</p>
@@ -146,6 +158,7 @@ export function ChristmasBingoGame() {
           </button>
         </div>
       )}
+      {celebrating && <MilestoneCelebration title="BINGO!" detail="You found a full festive line." onDone={() => setCelebrating(false)} />}
     </section>
   );
 }

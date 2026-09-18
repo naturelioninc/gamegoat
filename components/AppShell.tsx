@@ -61,7 +61,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div id="game-content" tabIndex={-1} className={`route-scene flex-1 ${scene} ${isLiveRoom ? "pb-4" : "pb-20 sm:pb-0"}`}>{children}</div>
 
-      <BottomNav onPlayClick={openPicker} />
+      {!menuOpen && <BottomNav onPlayClick={openPicker} />}
 
       {pickerOpen && <GamePickerOverlay onClose={() => setPickerOpen(false)} />}
     </>

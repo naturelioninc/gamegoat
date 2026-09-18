@@ -5,7 +5,10 @@ import { usePathname } from "next/navigation";
 
 export function Footer() {
   const pathname = usePathname();
-  if (/\/(kris-kringle|secret-santa)\/room\//.test(pathname)) return null;
+  if (
+    /\/(kris-kringle|secret-santa)\/room\//.test(pathname) ||
+    ["/app", "/trivia", "/charades", "/bingo", "/join", "/my-games"].includes(pathname)
+  ) return null;
   return (
     <footer className="site-footer mt-16 border-t-2 border-black bg-black text-white">
       <div className="mx-auto max-w-6xl space-y-5 px-5 py-10 text-sm text-white/75 sm:px-8">

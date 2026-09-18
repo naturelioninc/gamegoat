@@ -1,6 +1,6 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
-const productionUrl = "https://games.xmasgoat.com/app";
+const productionUrl = "https://app.xmasgoat.com/";
 
 const config: CapacitorConfig = {
   appId: "com.xmasgoat.games",
@@ -11,11 +11,10 @@ const config: CapacitorConfig = {
   server: {
     url: productionUrl,
     cleartext: false,
-    allowNavigation: [
-      "games.xmasgoat.com",
-      "party.xmasgoat.com",
-      "account.xmasgoat.com",
-    ],
+    errorPath: "index.html",
+    // Only the app host. The party and games subdomains are retired; any
+    // other link (the gift catalogue, a shop) opens in the phone's browser.
+    allowNavigation: ["app.xmasgoat.com"],
   },
   ios: {
     contentInset: "automatic",
@@ -24,6 +23,7 @@ const config: CapacitorConfig = {
   },
   android: {
     allowMixedContent: false,
+    adjustMarginsForEdgeToEdge: "auto",
     backgroundColor: "#fffdf7",
   },
   plugins: {
