@@ -23,6 +23,8 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(SharedWishPlugin.class);
         super.onCreate(savedInstanceState);
         getBridge().getWebView().setOverScrollMode(View.OVER_SCROLL_NEVER);
+        // The website talks to the phone through this, origin-locked by the platform.
+        NativeBridge.install(this, getBridge().getWebView());
 
         appUpdateManager = AppUpdateManagerFactory.create(this);
         updateLauncher = registerForActivityResult(
